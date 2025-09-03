@@ -1,73 +1,51 @@
+import unittest
 from avl_tree import create, clear, size, find, insert, delete, foreach
+from random import choice, randint
+import string
 
-def run_tests():
-    passed = 0
-    total = 0
-
-    def test_empty_tree():
-        nonlocal passed, total
-        total += 1
+class TestAVLTree(unittest.TestCase):
+    def test_empty_tree(self):
         tree = create(lambda x, y: x - y)
-        assert size(tree) == 0
-        assert find(tree, 5) is None
-        print("Test empty tree: PASSED")
-        return 1
-
-    def test_insert_find():
-        nonlocal passed, total
-        total += 1
+        self.assertEqual(size(tree), 0)
+        self.assertIsNone(find(tree, 5))
+    
+    def test_insert_find(self):
         tree = create(lambda x, y: x - y)
-        assert insert(tree, 10) is None
-        assert insert(tree, 5) is None
-        assert insert(tree, 15) is None
-        assert size(tree) == 3
-        assert find(tree, 10) == 10
-        assert find(tree, 5) == 5
-        assert find(tree, 15) == 15
-        assert find(tree, 20) is None
-        print("Test insert/find: PASSED")
-        return 1
-
-    def test_insert_replace():
-        nonlocal passed, total
-        total += 1
+        self.assertIsNone(insert(tree, 10))
+        self.assertIsNone(insert(tree, 5))
+        self.assertIsNone(insert(tree, 15))
+        self.assertEqual(size(tree), 3)
+        self.assertEqual(find(tree, 10), 10)
+        self.assertEqual(find(tree, 5), 5)
+        self.assertEqual(find(tree, 15), 15)
+        self.assertIsNone(find(tree, 20))
+    
+    def test_insert_replace(self):
         tree = create(lambda x, y: x - y)
         insert(tree, 10)
-        assert insert(tree, 10) == 10
-        assert size(tree) == 1
-        assert find(tree, 10) == 10
-        print("Test insert replace: PASSED")
-        return 1
-
-    def test_delete():
-        nonlocal passed, total
-        total += 1
+        self.assertEqual(insert(tree, 10), 10)
+        self.assertEqual(size(tree), 1)
+        self.assertEqual(find(tree, 10), 10)
+    
+    def test_delete(self):
         tree = create(lambda x, y: x - y)
         insert(tree, 10)
         insert(tree, 5)
         insert(tree, 15)
-        assert delete(tree, 5) == 5
-        assert size(tree) == 2
-        assert find(tree, 5) is None
-        assert delete(tree, 999) is None
-        print("Test delete: PASSED")
-        return 1
-
-    def test_clear():
-        nonlocal passed, total
-        total += 1
+        self.assertEqual(delete(tree, 5), 5)
+        self.assertEqual(size(tree), 2)
+        self.assertIsNone(find(tree, 5))
+        self.assertIsNone(delete(tree, 999))
+    
+    def test_clear(self):
         tree = create(lambda x, y: x - y)
         insert(tree, 10)
         insert(tree, 5)
         clear(tree)
-        assert size(tree) == 0
-        assert find(tree, 10) is None
-        print("Test clear: PASSED")
-        return 1
-
-    def test_foreach():
-        nonlocal passed, total
-        total += 1
+        self.assertEqual(size(tree), 0)
+        self.assertIsNone(find(tree, 10))
+    
+    def test_foreach(self):
         tree = create(lambda x, y: x - y)
         insert(tree, 10)
         insert(tree, 5)
@@ -76,50 +54,62 @@ def run_tests():
         insert(tree, 7)
         result = []
         foreach(tree, lambda x: result.append(x))
-        assert result == [3, 5, 7, 10, 15]
-        print("Test foreach: PASSED")
-        return 1
-
-    def test_avl_balance():
-        nonlocal passed, total
-        total += 1
+        self.assertEqual(result, [3, 5, 7, 10, 15])
+    
+    def test_avl_balance(self):
         tree = create(lambda x, y: x - y)
         for i in range(10):
             insert(tree, i)
-        assert size(tree) == 10
+        self.assertEqual(size(tree), 10)
         result = []
         foreach(tree, lambda x: result.append(x))
-        assert result == list(range(10))
-        print("Test AVL balance: PASSED")
-        return 1
-
-    def test_string_keys():
-        nonlocal passed, total
-        total += 1
+        self.assertEqual(result, list(range(10)))
+    
+    def test_string_keys(self):
         tree = create(lambda x, y: (x > y) - (x < y))
         insert(tree, "apple")
         insert(tree, "banana")
         insert(tree, "cherry")
-        assert size(tree) == 3
-        assert find(tree, "banana") == "banana"
-        assert delete(tree, "apple") == "apple"
-        assert size(tree) == 2
-        print("Test string keys: PASSED")
-        return 1
-
-    try:
-        passed += test_empty_tree()
-        passed += test_insert_find()
-        passed += test_insert_replace()
-        passed += test_delete()
-        passed += test_clear()
-        passed += test_foreach()
-        passed += test_avl_balance()
-        passed += test_string_keys()
-        print(f"\nAll tests passed! {passed}/{total} tests successful.")
-    except AssertionError as e:
-        print(f"Test failed: {e}")
-        print(f"Tests passed: {passed}/{total}")
+        self.assertEqual(size(tree), 3)
+        self.assertEqual(find(tree, "banana"), "banana")
+        self.assertEqual(delete(tree, "apple"), "apple")
+        self.assertEqual(size(tree), 2)
+    
+    def test_large_tree(self):
+        tree = create(lambda x, y: x - y)
+        for i in range(1000):
+            insert(tree, i)
+        self.assertEqual(size(tree), 1000)
+        self.assertEqual(find(tree, 500), 500)
+        self.assertEqual(delete(tree, 500), 500)
+        self.assertEqual(size(tree), 999)
+        self.assertIsNone(find(tree, 500))
+    
+    def test_random_operations(self):
+        tree = create(lambda x, y: x - y)
+        elements = set()
+        
+        for _ in range(1000):
+            operation = randint(0, 2)
+            if operation == 0:  # insert
+                value = randint(0, 100)
+                expected = value if value in elements else None
+                result = insert(tree, value)
+                elements.add(value)
+                self.assertEqual(result, expected)
+            elif operation == 1:  # find
+                value = randint(0, 100)
+                expected = value if value in elements else None
+                result = find(tree, value)
+                self.assertEqual(result, expected)
+            elif operation == 2:  # delete
+                value = randint(0, 100)
+                expected = value if value in elements else None
+                result = delete(tree, value)
+                elements.discard(value)
+                self.assertEqual(result, expected)
+            
+            self.assertEqual(size(tree), len(elements))
 
 if __name__ == "__main__":
-    run_tests()
+    unittest.main()
