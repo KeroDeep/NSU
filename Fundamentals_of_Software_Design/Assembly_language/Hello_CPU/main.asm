@@ -1,18 +1,16 @@
-section .data
-    message db 'Hello CPU!', 0   ; строка для вывода
+.data
+    message: .asciz "Hello CPU!"
 
-section .text
-    global _start                ; точка входа для линковщика
+.text
+    .globl _start
 
 _start:
-    ; Печать строки
-    mov eax, 4                  ; syscall номер 4 (sys_write)
-    mov ebx, 1                  ; дескриптор файла 1 (stdout)
-    mov ecx, message            ; адрес строки
-    mov edx, 12                 ; длина строки
-    int 0x80                    ; вызов системного прерывания
+    li a7, 64          # syscall write
+    li a0, 1           # stdout
+    la a1, message     # адрес строки
+    li a2, 11          # длина строки "Hello CPU!"
+    ecall
 
-    ; Завершение программы
-    mov eax, 1                  ; syscall номер 1 (sys_exit)
-    xor ebx, ebx                ; код возврата 0
-    int 0x80                    ; вызов системного прерывания
+    li a7, 93          # syscall exit
+    li a0, 0           # код возврата
+    ecall
