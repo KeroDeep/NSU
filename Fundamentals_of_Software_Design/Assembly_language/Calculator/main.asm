@@ -1,133 +1,155 @@
-section .data
-    prompt1 db 'Enter the first number: ', 0
-    prompt2 db 'Enter the second number: ', 0
-    prompt3 db 'Choose operation (1=Sum, 2=Subtraction, 3=Multiplication, 4=Division, 5=Modulus): ', 0
-    msg db 'Result: ', 0
+# RISC-V Ассемблер (синтаксис GNU as)
+.data
+    prompt1: .asciz "Enter the first number: "
+    prompt2: .asciz "Enter the second number: "
+    prompt3: .asciz "Choose operation (1=Sum, 2=Subtraction, 3=Multiplication, 4=Division, 5=Modulus): "
+    msg: .asciz "Result: "
+    newline: .asciz "\n"
 
-section .bss
-    num1 resb 4  ; переменная для первого числа
-    num2 resb 4  ; переменная для второго числа
-    result resb 4  ; переменная для результата
+.bss
+    num1: .skip 4      # переменная для первого числа
+    num2: .skip 4      # переменная для второго числа
+    result: .skip 4    # переменная для результата
+    choice: .skip 4    # переменная для выбора операции
 
-section .text
-    global _start
+.text
+    .globl _start
 
 _start:
-    ; Ввод первого числа
-    mov eax, 4                 ; syscall номер 4 (sys_write)
-    mov ebx, 1                 ; дескриптор файла 1 (stdout)
-    mov ecx, prompt1           ; адрес строки
-    mov edx, 23                ; длина строки
-    int 0x80                   ; системный вызов
+    # === ВВОД ПЕРВОГО ЧИСЛА ===
+    li a7, 64           # syscall write
+    li a0, 1            # stdout
+    la a1, prompt1      # адрес строки
+    li a2, 23           # длина строки
+    ecall
 
-    mov eax, 3                 ; syscall номер 3 (sys_read)
-    mov ebx, 0                 ; дескриптор файла 0 (stdin)
-    mov ecx, num1              ; адрес для хранения числа
-    mov edx, 4                 ; количество байт для чтения
-    int 0x80                   ; системный вызов
+    li a7, 63           # syscall read
+    li a0, 0            # stdin
+    la a1, num1         # буфер для числа
+    li a2, 4            # читаем 4 байта
+    ecall
 
-    ; Ввод второго числа
-    mov eax, 4                 ; syscall номер 4 (sys_write)
-    mov ebx, 1                 ; дескриптор файла 1 (stdout)
-    mov ecx, prompt2           ; адрес строки
-    mov edx, 25                ; длина строки
-    int 0x80                   ; системный вызов
+    # === ВВОД ВТОРОГО ЧИСЛА ===
+    li a7, 64
+    li a0, 1
+    la a1, prompt2
+    li a2, 25           # длина строки
+    ecall
 
-    mov eax, 3                 ; syscall номер 3 (sys_read)
-    mov ebx, 0                 ; дескриптор файла 0 (stdin)
-    mov ecx, num2              ; адрес для хранения числа
-    mov edx, 4                 ; количество байт для чтения
-    int 0x80                   ; системный вызов
+    li a7, 63
+    li a0, 0
+    la a1, num2
+    li a2, 4
+    ecall
 
-    ; Ввод выбора операции
-    mov eax, 4                 ; syscall номер 4 (sys_write)
-    mov ebx, 1                 ; дескриптор файла 1 (stdout)
-    mov ecx, prompt3           ; адрес строки
-    mov edx, 72                ; длина строки
-    int 0x80                   ; системный вызов
+    # === ВЫБОР ОПЕРАЦИИ ===
+    li a7, 64
+    li a0, 1
+    la a1, prompt3
+    li a2, 72           # длина строки
+    ecall
 
-    mov eax, 3                 ; syscall номер 3 (sys_read)
-    mov ebx, 0                 ; дескриптор файла 0 (stdin)
-    mov ecx, result            ; адрес для хранения выбора
-    mov edx, 4                 ; количество байт для чтения
-    int 0x80                   ; системный вызов
+    li a7, 63
+    li a0, 0
+    la a1, choice       # сохраняем выбор в отдельную переменную
+    li a2, 4
+    ecall
 
-    ; Преобразуем введенное значение в число (в нашем случае из строки в число)
+    # === ПРЕОБРАЗОВАНИЕ И ВЫБОР ОПЕРАЦИИ ===
+    lb t0, choice       # загружаем выбор операции
+    addi t0, t0, -48    # преобразуем ASCII в число
 
-    ; Проводим выбор операции, в зависимости от введенной команды
-    mov al, [result]           ; загрузим выбранную операцию
-    sub al, '0'                ; преобразуем ASCII в число
+    # Загружаем числа и преобразуем их
+    lb t1, num1
+    addi t1, t1, -48    # num1_value
+    lb t2, num2
+    addi t2, t2, -48    # num2_value
 
-    cmp al, 1                  ; если 1, то сложение
-    je .sum
+    # Ветвление по выбору операции
+    li t3, 1
+    beq t0, t3, sum     # if choice == 1
 
-    cmp al, 2                  ; если 2, то вычитание
-    je .sub
+    li t3, 2
+    beq t0, t3, sub     # if choice == 2
 
-    cmp al, 3                  ; если 3, то умножение
-    je .mul
+    li t3, 3
+    beq t0, t3, mul     # if choice == 3
 
-    cmp al, 4                  ; если 4, то деление
-    je .div
+    li t3, 4
+    beq t0, t3, div     # if choice == 4
 
-    cmp al, 5                  ; если 5, то остаток от деления
-    je .mod
+    li t3, 5
+    beq t0, t3, mod     # if choice == 5
 
-    jmp .done                  ; если ввели неправильный выбор, выходим
+    j done              # неверный выбор
 
-.sum:
-    ; Сложение
-    mov eax, [num1]            ; загружаем первое число
-    add eax, [num2]            ; прибавляем второе число
-    mov [result], eax          ; сохраняем результат
-    jmp .print_result
+sum:
+    # СЛОЖЕНИЕ
+    add t4, t1, t2      # result = num1 + num2
+    sw t4, result
+    j print_result
 
-.sub:
-    ; Вычитание
-    mov eax, [num1]            ; загружаем первое число
-    sub eax, [num2]            ; вычитаем второе число
-    mov [result], eax          ; сохраняем результат
-    jmp .print_result
+sub:
+    # ВЫЧИТАНИЕ
+    sub t4, t1, t2      # result = num1 - num2
+    sw t4, result
+    j print_result
 
-.mul:
-    ; Умножение
-    mov eax, [num1]            ; загружаем первое число
-    imul eax, [num2]           ; умножаем на второе число
-    mov [result], eax          ; сохраняем результат
-    jmp .print_result
+mul:
+    # УМНОЖЕНИЕ
+    mul t4, t1, t2      # result = num1 * num2
+    sw t4, result
+    j print_result
 
-.div:
-    ; Деление
-    mov eax, [num1]            ; загружаем первое число
-    xor edx, edx               ; очищаем регистр edx (для деления)
-    div dword [num2]           ; делим на второе число (eax:edx) -> eax = результат, edx = остаток
-    mov [result], eax          ; сохраняем результат
-    jmp .print_result
+div:
+    # ДЕЛЕНИЕ
+    beqz t2, div_error  # проверка деления на ноль
+    div t4, t1, t2      # result = num1 / num2
+    sw t4, result
+    j print_result
 
-.mod:
-    ; Остаток от деления
-    mov eax, [num1]            ; загружаем первое число
-    xor edx, edx               ; очищаем edx
-    div dword [num2]           ; делим на второе число
-    mov [result], edx          ; сохраняем остаток в result
-    jmp .print_result
+mod:
+    # ОСТАТОК ОТ ДЕЛЕНИЯ
+    beqz t2, div_error  # проверка деления на ноль
+    rem t4, t1, t2      # result = num1 % num2
+    sw t4, result
+    j print_result
 
-.print_result:
-    ; Выводим результат
-    mov eax, 4                 ; syscall номер 4 (sys_write)
-    mov ebx, 1                 ; дескриптор файла 1 (stdout)
-    mov ecx, msg               ; адрес строки
-    mov edx, 8                 ; длина строки
-    int 0x80                   ; системный вызов
+div_error:
+    # Обработка ошибки деления на ноль
+    li t4, -1           # специальное значение для ошибки
+    sw t4, result
+    j print_result
 
-    mov eax, 4                 ; syscall номер 4 (sys_write)
-    mov ebx, 1                 ; дескриптор файла 1 (stdout)
-    mov ecx, result            ; адрес результата
-    mov edx, 4                 ; количество байт для вывода
-    int 0x80                   ; системный вызов
+print_result:
+    # === ВЫВОД РЕЗУЛЬТАТА ===
+    # Выводим "Result: "
+    li a7, 64
+    li a0, 1
+    la a1, msg
+    li a2, 8            # длина "Result: "
+    ecall
 
-.done:
-    ; Завершаем программу
-    mov eax, 1                 ; syscall номер 1 (sys_exit)
-    xor ebx, ebx               ; код возврата 0
-    int 0x80                   ; системный вызов
+    # Преобразуем число в ASCII и выводим
+    lw t0, result
+    addi t0, t0, 48     # преобразуем число в ASCII
+    sb t0, result       # сохраняем ASCII-символ
+
+    li a7, 64
+    li a0, 1
+    la a1, result       # адрес символа результата
+    li a2, 1            # выводим 1 символ
+    ecall
+
+    # Выводим перевод строки
+    li a7, 64
+    li a0, 1
+    la a1, newline
+    li a2, 1
+    ecall
+
+done:
+    # === ЗАВЕРШЕНИЕ ПРОГРАММЫ ===
+    li a7, 93           # syscall exit
+    li a0, 0            # код возврата 0
+    ecall
