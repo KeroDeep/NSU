@@ -1,88 +1,84 @@
-section .data
-    prompt1 db "Enter A: ", 0
-    prompt2 db "Enter B: ", 0
-    result_msg db "Product: ", 0
+.data
+    prompt1: .asciz "Enter A: "
+    prompt2: .asciz "Enter B: "
+    result_msg: .asciz "Product: "
+    A: .skip 4
+    B: .skip 4
+    product: .skip 4
+    newline: .asciz "\n"
 
-section .bss
-    A resb 4
-    B resb 4
-    product resb 4
-
-section .text
-    global _start
+.text
+    .globl _start
 
 _start:
-    ; Ввод A
-    mov eax, 4
-    mov ebx, 1
-    mov ecx, prompt1
-    mov edx, 9
-    int 0x80
+    li a7, 64
+    li a0, 1
+    la a1, prompt1
+    li a2, 9
+    ecall
 
-    mov eax, 3
-    mov ebx, 0
-    mov ecx, A
-    mov edx, 4
-    int 0x80
+    li a7, 63
+    li a0, 0
+    la a1, A
+    li a2, 4
+    ecall
 
-    ; Ввод B
-    mov eax, 4
-    mov ebx, 1
-    mov ecx, prompt2
-    mov edx, 9
-    int 0x80
+    li a7, 64
+    li a0, 1
+    la a1, prompt2
+    li a2, 9
+    ecall
 
-    mov eax, 3
-    mov ebx, 0
-    mov ecx, B
-    mov edx, 4
-    int 0x80
+    li a7, 63
+    li a0, 0
+    la a1, B
+    li a2, 4
+    ecall
 
-    ; Преобразование ASCII в числа
-    mov eax, [A]
-    sub eax, '0'   ; A = число
-    mov ebx, [B]
-    sub ebx, '0'   ; B = число
+    lb t0, A
+    addi t0, t0, -48
+    lb t1, B
+    addi t1, t1, -48
+    beqz t1, zero_case
 
-    ; Проверка на ноль
-    test ebx, ebx
-    jz .zero_case
+    li t2, 0
+mul_loop:
+    andi t3, t1, 1
+    beqz t3, skip_add
+    add t2, t2, t0
+skip_add:
+    slli t0, t0, 1
+    srli t1, t1, 1
+    bnez t1, mul_loop
+    sw t2, product
+    j print_result
 
-    ; Умножение через сложение (битовая оптимизация)
-    xor ecx, ecx  ; Счетчик суммы (итоговый результат)
+zero_case:
+    sw x0, product
 
-.loop:
-    test ebx, 1   ; Проверяем младший бит B
-    jz .skip_add  ; Если ноль, пропускаем сложение
-    add ecx, eax  ; Прибавляем A к результату
+print_result:
+    li a7, 64
+    li a0, 1
+    la a1, result_msg
+    li a2, 9
+    ecall
 
-.skip_add:
-    shl eax, 1    ; A *= 2 (сдвиг влево)
-    shr ebx, 1    ; B /= 2 (сдвиг вправо)
-    jnz .loop     ; Пока B ≠ 0, продолжаем
+    lw t4, product
+    addi t4, t4, 48
+    sb t4, product
 
-    ; Записываем результат
-    mov [product], ecx
-    jmp .print_result
+    li a7, 64
+    li a0, 1
+    la a1, product
+    li a2, 1
+    ecall
 
-.zero_case:
-    mov dword [product], 0
+    li a7, 64
+    li a0, 1
+    la a1, newline
+    li a2, 1
+    ecall
 
-.print_result:
-    ; Вывод результата
-    mov eax, 4
-    mov ebx, 1
-    mov ecx, result_msg
-    mov edx, 9
-    int 0x80
-
-    mov eax, 4
-    mov ebx, 1
-    mov ecx, product
-    mov edx, 4
-    int 0x80
-
-    ; Завершение программы
-    mov eax, 1
-    xor ebx, ebx
-    int 0x80
+    li a7, 93
+    li a0, 0
+    ecall
