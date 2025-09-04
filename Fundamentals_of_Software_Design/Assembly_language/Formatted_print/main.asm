@@ -1,143 +1,105 @@
-section .data
-    newline db 10, 0    ; Символ новой строки
+.data
+    newline:   .asciz "\n"
+    buffer:    .space 32
 
-section .text
-    global my_printf   ; Экспортируем функцию
-
-extern printf          ; Подключаем стандартный printf (для теста)
+.text
+    .globl my_printf
 
 my_printf:
-    ; Вход: 
-    ;  - [esp+4]  = указатель на форматную строку
-    ;  - [esp+8], [esp+12], ... = аргументы
-    ; Выход: нет
+    addi sp, sp, -32
+    sw ra, 28(sp)
+    sw s0, 24(sp)
+    addi s0, sp, 32
+    mv t0, a0
+    addi s1, a1, 0
 
-    push ebp
-    mov ebp, esp
-    sub esp, 16         ; Буфер для вывода чисел
+loop:
+    lbu t1, 0(t0)
+    beqz t1, done
+    addi t0, t0, 1
+    li t2, '%'
+    beq t1, t2, format
+    li a7, 64
+    li a0, 1
+    addi a1, t0, -1
+    li a2, 1
+    ecall
+    j loop
 
-    mov esi, [ebp+8]    ; Загружаем адрес строки формата
-    add ebp, 12         ; Устанавливаем ebp на первый аргумент
+format:
+    lbu t1, 0(t0)
+    addi t0, t0, 1
+    li t2, '%'
+    beq t1, t2, print_char
+    li t2, 's'
+    beq t1, t2, print_str
+    li t2, 'd'
+    beq t1, t2, print_int
+    j loop
 
-.loop:
-    lodsb               ; Загружаем следующий символ в AL
-    test al, al         ; Если конец строки (null terminator), выходим
-    jz .done
+print_char:
+    li a7, 64
+    li a0, 1
+    addi a1, t0, -1
+    li a2, 1
+    ecall
+    j loop
 
-    cmp al, '%'         ; Если не '%', просто печатаем символ
-    jne .print_char
+print_str:
+    lw a1, 0(s1)
+    addi s1, s1, 4
+    mv a0, a1
+    call strlen
+    mv a2, a0
+    li a7, 64
+    li a0, 1
+    ecall
+    j loop
 
-    lodsb               ; Загружаем следующий символ после '%'
-    cmp al, '%'         ; %%
-    je .print_char
+print_int:
+    lw a0, 0(s1)
+    addi s1, s1, 4
+    call itoa
+    mv a1, a0
+    mv a0, a0
+    call strlen
+    mv a2, a0
+    li a7, 64
+    li a0, 1
+    ecall
+    j loop
 
-    cmp al, 'd'         ; %d — число
-    je .print_int
-
-    cmp al, 's'         ; %s — строка
-    je .print_str
-
-    jmp .loop           ; Если неизвестный формат, пропускаем
-
-.print_char:
-    push eax            ; Сохраняем символ
-    push 1              ; Дескриптор stdout
-    push esp            ; Адрес символа
-    push 1              ; Длина 1
-    mov eax, 4          ; Системный вызов write
-    int 0x80
-    add esp, 16         ; Очищаем стек
-    jmp .loop
-
-.print_str:
-    mov eax, [ebp]      ; Загружаем строку (адрес)
-    add ebp, 4          ; Смещаемся к следующему аргументу
-
-    push eax            ; Аргумент write (адрес)
-    push eax            ; Аргумент для вычисления длины
-    call strlen         ; Вычисляем длину строки
-    push eax            ; Длина строки
-    push 1              ; stdout
-    mov eax, 4          ; Системный вызов write
-    int 0x80
-    add esp, 16
-    jmp .loop
-
-.print_int:
-    mov eax, [ebp]      ; Загружаем число
-    add ebp, 4          ; Смещаемся к следующему аргументу
-
-    push eax            ; Передаём в функцию
-    call itoa           ; Преобразуем в строку
-    add esp, 4          ; Очищаем стек
-
-    push eax            ; Аргумент write (адрес строки)
-    call strlen         ; Вычисляем длину строки
-    push eax            ; Длина строки
-    push 1              ; stdout
-    mov eax, 4          ; Системный вызов write
-    int 0x80
-    add esp, 16
-    jmp .loop
-
-.done:
-    add esp, 16         ; Восстанавливаем стек
-    pop ebp
+done:
+    lw ra, 28(sp)
+    lw s0, 24(sp)
+    addi sp, sp, 32
     ret
 
-; --- Вспомогательная функция: strlen ---
 strlen:
-    push ecx
-    push edi
-    mov edi, [esp+8]   ; Адрес строки
-    mov ecx, -1
-    xor al, al
-    repne scasb
-    not ecx
-    dec ecx
-    mov eax, ecx
-    pop edi
-    pop ecx
+    mv t0, a0
+    li t1, 0
+strlen_loop:
+    lbu t2, 0(t0)
+    beqz t2, strlen_done
+    addi t1, t1, 1
+    addi t0, t0, 1
+    j strlen_loop
+strlen_done:
+    mv a0, t1
     ret
 
-; --- Вспомогательная функция: itoa (int -> строка) ---
 itoa:
-    ; Вход: eax — число
-    ; Выход: eax — адрес строки
-    push ebx
-    push ecx
-    push edx
-    push esi
-
-    mov esi, esp        ; Буфер
-    mov ecx, 10         ; Основание системы счисления
-    xor ebx, ebx        ; Флаг знака
-
-    test eax, eax
-    jns .conv           ; Если положительное, пропустить знак
-
-    neg eax             ; Обратный знак
-    mov bl, 1           ; Установить флаг знака
-
-.conv:
-    xor edx, edx
-    div ecx             ; Делим число на 10
-    add dl, '0'         ; Преобразуем в ASCII
-    dec esp
-    mov [esp], dl       ; Записываем символ в стек
-    test eax, eax
-    jnz .conv           ; Повторяем, пока число не станет 0
-
-    test bl, bl
-    jz .done            ; Если число было положительное, завершить
-
-    dec esp
-    mov byte [esp], '-' ; Добавить знак минуса
-
-.done:
-    mov eax, esp        ; Возвращаем адрес строки
-    pop esi
-    pop edx
-    pop ecx
-    pop ebx
+    mv t0, a0
+    addi t1, zero, 10
+    la t2, buffer
+    addi t2, t2, 31
+    sb zero, 0(t2)
+itoa_loop:
+    rem t3, t0, t1
+    div t0, t0, t1
+    addi t3, t3, 48
+    addi t2, t2, -1
+    sb t3, 0(t2)
+    bnez t0, itoa_loop
+    mv a0, t2
     ret
