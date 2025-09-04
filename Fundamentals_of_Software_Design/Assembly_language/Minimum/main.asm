@@ -1,80 +1,77 @@
-section .data
-    prompt db 'Enter three numbers: ', 0   ; Строка подсказки
-    msg db 'The minimum is: ', 0           ; Сообщение для вывода минимального числа
+.data
+    prompt: .asciz "Enter three numbers: "
+    msg: .asciz "The minimum is: "
+    num1: .skip 4
+    num2: .skip 4
+    num3: .skip 4
+    min:  .skip 4
+    newline: .asciz "\n"
 
-section .bss
-    num1 resb 4   ; Переменная для первого числа
-    num2 resb 4   ; Переменная для второго числа
-    num3 resb 4   ; Переменная для третьего числа
-    min resb 4    ; Переменная для минимального числа
-
-section .text
-    global _start  ; Точка входа программы
+.text
+    .globl _start
 
 _start:
-    ; Выводим подсказку
-    mov eax, 4         ; syscall номер 4 (sys_write)
-    mov ebx, 1         ; дескриптор файла 1 (stdout)
-    mov ecx, prompt    ; адрес строки
-    mov edx, 20        ; длина строки
-    int 0x80           ; системный вызов
+    li a7, 64
+    li a0, 1
+    la a1, prompt
+    li a2, 20
+    ecall
 
-    ; Вводим три числа
-    ; Чтение первого числа
-    mov eax, 3         ; syscall номер 3 (sys_read)
-    mov ebx, 0         ; дескриптор файла 0 (stdin)
-    mov ecx, num1      ; адрес для хранения числа
-    mov edx, 4         ; количество байт для чтения
-    int 0x80           ; системный вызов
+    li a7, 63
+    li a0, 0
+    la a1, num1
+    li a2, 4
+    ecall
 
-    ; Чтение второго числа
-    mov eax, 3         ; syscall номер 3 (sys_read)
-    mov ebx, 0         ; дескриптор файла 0 (stdin)
-    mov ecx, num2      ; адрес для хранения числа
-    mov edx, 4         ; количество байт для чтения
-    int 0x80           ; системный вызов
+    li a7, 63
+    li a0, 0
+    la a1, num2
+    li a2, 4
+    ecall
 
-    ; Чтение третьего числа
-    mov eax, 3         ; syscall номер 3 (sys_read)
-    mov ebx, 0         ; дескриптор файла 0 (stdin)
-    mov ecx, num3      ; адрес для хранения числа
-    mov edx, 4         ; количество байт для чтения
-    int 0x80           ; системный вызов
+    li a7, 63
+    li a0, 0
+    la a1, num3
+    li a2, 4
+    ecall
 
-    ; Нахождение минимального числа
-    ; Сравниваем num1 и num2
-    mov eax, [num1]
-    mov ebx, [num2]
-    cmp eax, ebx
-    jle .min1isfirst   ; если num1 <= num2, переходим к следующему сравнению
-    mov eax, ebx       ; иначе num2 становится минимальным
-.min1isfirst:
-    
-    ; Сравниваем num1 или num2 с num3
-    mov ebx, [num3]
-    cmp eax, ebx
-    jle .done          ; если текущее минимальное значение <= num3, завершаем
-    mov eax, ebx       ; иначе num3 становится минимальным
+    lb t0, num1
+    addi t0, t0, -48
+    lb t1, num2
+    addi t1, t1, -48
+    lb t2, num3
+    addi t2, t2, -48
 
-.done:
-    ; Выводим минимальное значение
-    mov [min], eax
+    ble t0, t1, keep_t0
+    mv t0, t1
+keep_t0:
+    ble t0, t2, keep_t0_again
+    mv t0, t2
+keep_t0_again:
+    sw t0, min
 
-    ; Выводим сообщение о минимальном числе
-    mov eax, 4         ; syscall номер 4 (sys_write)
-    mov ebx, 1         ; дескриптор файла 1 (stdout)
-    mov ecx, msg       ; адрес строки
-    mov edx, 18        ; длина строки
-    int 0x80           ; системный вызов
+    li a7, 64
+    li a0, 1
+    la a1, msg
+    li a2, 18
+    ecall
 
-    ; Выводим минимальное число
-    mov eax, 4         ; syscall номер 4 (sys_write)
-    mov ebx, 1         ; дескриптор файла 1 (stdout)
-    mov ecx, min       ; адрес минимального числа
-    mov edx, 4         ; количество байт для вывода
-    int 0x80           ; системный вызов
+    lw t3, min
+    addi t3, t3, 48
+    sb t3, min
 
-    ; Завершаем программу
-    mov eax, 1         ; syscall номер 1 (sys_exit)
-    xor ebx, ebx       ; код возврата 0
-    int 0x80           ; системный вызов
+    li a7, 64
+    li a0, 1
+    la a1, min
+    li a2, 1
+    ecall
+
+    li a7, 64
+    li a0, 1
+    la a1, newline
+    li a2, 1
+    ecall
+
+    li a7, 93
+    li a0, 0
+    ecall
