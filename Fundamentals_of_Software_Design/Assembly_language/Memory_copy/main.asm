@@ -1,33 +1,34 @@
-section .text
-    global memcpy
+.text
+    .globl memcpy
 
 memcpy:
-    ; Аргументы:
-    ;   edi = dst (куда)
-    ;   esi = src (откуда)
-    ;   ecx = count (сколько)
-    
-    mov eax, edi       ; Если dst > src, делаем обратное копирование
-    cmp eax, esi
-    jae reverse_copy   ; Если dst >= src, идем на копирование с конца
-    
+    mv t0, a0
+    mv t1, a1
+    mv t2, a2
+    bge t0, t1, reverse_copy
+
 forward_copy:
-    cld               ; Копируем вперед (по умолчанию)
-    test ecx, ecx
-    jz done           ; Если count == 0, выходим
-    
-    rep movsb         ; Копируем count байт (ecx раз)
-    jmp done
+    beqz t2, done
+forward_loop:
+    lb t3, 0(t1)
+    sb t3, 0(t0)
+    addi t1, t1, 1
+    addi t0, t0, 1
+    addi t2, t2, -1
+    bnez t2, forward_loop
+    j done
 
 reverse_copy:
-    std               ; Устанавливаем направление копирования назад
-    add esi, ecx      ; src += count
-    add edi, ecx      ; dst += count
-    dec esi           ; src -= 1 (указываем на последний байт)
-    dec edi           ; dst -= 1 (указываем на последний байт)
-    
-    rep movsb         ; Копируем count байт назад
-    cld               ; Восстанавливаем стандартное направление
+    add t1, t1, t2
+    add t0, t0, t2
+    beqz t2, done
+reverse_loop:
+    addi t1, t1, -1
+    addi t0, t0, -1
+    lb t3, 0(t1)
+    sb t3, 0(t0)
+    addi t2, t2, -1
+    bnez t2, reverse_loop
 
 done:
-    ret               ; Возвращаемся
+    ret
