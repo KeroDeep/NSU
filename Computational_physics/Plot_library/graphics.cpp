@@ -113,8 +113,18 @@ namespace PlotLibrary {
     }
 
     void Figure::Plot(const std::vector<double>& x, const std::vector<double>& y, const PlotStyle& style) {
-        data_x.push_back(x);
-        data_y.push_back(y);
+        std::vector<double> filtered_x;
+        std::vector<double> filtered_y;
+        
+        for (size_t i = 0; i < x.size(); ++i) {
+            if (!std::isnan(x[i]) && !std::isnan(y[i])) {
+                filtered_x.push_back(x[i]);
+                filtered_y.push_back(y[i]);
+            }
+        }
+        
+        data_x.push_back(filtered_x);
+        data_y.push_back(filtered_y);
         
         PlotStyle new_style = style;
         new_style.plot_type = PlotType::LINE;
