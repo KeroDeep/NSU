@@ -544,7 +544,13 @@ namespace PlotLibrary {
                     
                     svg_file << "<line x1='" << legend_x << "' y1='" << (y + 5);
                     svg_file << "' x2='" << (legend_x + 20) << "' y2='" << (y + 5);
-                    svg_file << "' stroke='" << style.color.ToHex() << "' stroke-width='2'/>\n";
+                    svg_file << "' stroke='" << style.color.ToHex() << "' stroke-width='2'";
+
+                    if (style.line_style != LineStyle::SOLID && style.line_style != LineStyle::NONE) {
+                        svg_file << " stroke-dasharray='" << GetLineStyle(style.line_style) << "'";
+                    }
+
+                    svg_file << " opacity='" << style.alpha << "'/>\n";
                     
                     if (style.marker_style != MarkerStyle::NONE) {
                         std::string marker_path = GetMarkerPath(style.marker_style);
