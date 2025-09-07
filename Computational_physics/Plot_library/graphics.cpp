@@ -7,6 +7,8 @@
 #include <string>
 #include <limits>
 #include <cstdio>
+#include <iomanip>
+#include <sstream>
 
 #include "graphics.hpp"
 
@@ -88,6 +90,9 @@ namespace PlotLibrary {
         frame_visible = true;
         frame_color = Colors::WHITE;
         frame_alpha = 0.8;
+        frame_width = 120.0;
+        frame_height = 0.0;
+        auto_size = true;
     }
 
     Figure::Figure(double width, double height, double dpi_value) {
@@ -103,6 +108,8 @@ namespace PlotLibrary {
         title_properties.font_size = 16;
         title_properties.bold = true;
         label_properties.font_size = 14;
+        x_precision = 2;
+        y_precision = 2;
     }
 
     void Figure::Plot(const std::vector<double>& x, const std::vector<double>& y, const PlotStyle& style) {
@@ -303,6 +310,10 @@ namespace PlotLibrary {
         double plot_width = figure_width - 2 * margin;
         double plot_height = figure_height - 2 * margin;
         
+        if (limits.auto_x || limits.auto_y) {
+            CalculateAutoLimits();
+        }
+        
         if (grid_visible) {
             svg_file << "<g stroke='" << grid_color.ToHex() << "' stroke-width='1' stroke-dasharray='";
             svg_file << (grid_style == "--" ? "5,5" : "2,2") << "' opacity='" << grid_alpha << "'>\n";
@@ -336,6 +347,64 @@ namespace PlotLibrary {
         auto transform_y = [&](double y) {
             return figure_height - margin - (y - limits.y_min) * plot_height / (limits.y_max - limits.y_min);
         };
+
+        double tick_length = 5.0;
+        double tick_font_size = 10;
+
+        if (!x_ticks.empty()) {
+            for (double tick : x_ticks) {
+                if (tick < limits.x_min || tick > limits.x_max) continue;
+                double x_pos = transform_x(tick);
+                svg_file << "<line x1='" << x_pos << "' y1='" << (figure_height - margin);
+                svg_file << "' x2='" << x_pos << "' y2='" << (figure_height - margin + tick_length);
+                svg_file << "' stroke='" << axis_color.ToHex() << "' stroke-width='1'/>\n";
+                std::ostringstream oss;
+                oss << std::fixed << std::setprecision(x_precision) << tick;
+                svg_file << "<text x='" << x_pos << "' y='" << (figure_height - margin + 15);
+                svg_file << "' text-anchor='middle' font-family='" << label_properties.font_family;
+                svg_file << "' font-size='" << tick_font_size << "' fill='" << label_properties.color.ToHex();
+                svg_file << "'>" << oss.str() << "</text>\n";
+            }
+        } else {
+            for (int i = 0; i <= 10; i++) {
+                double tick = limits.x_min + (limits.x_max - limits.x_min) * i / 10.0;
+                double x_pos = transform_x(tick);
+                svg_file << "<line x1='" << x_pos << "' y1='" << (figure_height - margin) << "' x2='" << x_pos << "' y2='" << (figure_height - margin + tick_length) << "' stroke='" << axis_color.ToHex() << "' stroke-width='1'/>\n";
+                std::ostringstream oss;
+                oss << std::fixed << std::setprecision(x_precision) << tick;
+                svg_file << "<text x='" << x_pos << "' y='" << (figure_height - margin + 15) << "' text-anchor='middle' font-family='" << label_properties.font_family << "' font-size='" << tick_font_size << "' fill='" << label_properties.color.ToHex() << "'>" << oss.str() << "</text>\n";
+            }
+        }
+        
+        if (!y_ticks.empty()) {
+            for (double tick : y_ticks) {
+                if (tick < limits.y_min || tick > limits.y_max) continue;
+                double y_pos = transform_y(tick);
+                svg_file << "<line x1='" << margin - tick_length << "' y1='" << y_pos;
+                svg_file << "' x2='" << margin << "' y2='" << y_pos << "' stroke='";
+                svg_file << axis_color.ToHex() << "' stroke-width='1'/>\n";
+                std::ostringstream oss;
+                oss << std::fixed << std::setprecision(y_precision) << tick;
+                svg_file << "<text x='" << (margin - 15) << "' y='" << (y_pos + 3);
+                svg_file << "' text-anchor='end' font-family='" << label_properties.font_family;
+                svg_file << "' font-size='" << tick_font_size << "' fill='" << label_properties.color.ToHex();
+                svg_file << "'>" << oss.str() << "</text>\n";
+            }
+        } else {
+            for (int i = 0; i <= 10; i++) {
+                double tick = limits.y_min + (limits.y_max - limits.y_min) * i / 10.0;
+                double y_pos = transform_y(tick);
+                svg_file << "<line x1='" << (margin - tick_length) << "' y1='" << y_pos;
+                svg_file << "' x2='" << margin << "' y2='" << y_pos << "' stroke='" << axis_color.ToHex();
+                svg_file << "' stroke-width='1'/>\n";
+                std::ostringstream oss;
+                oss << std::fixed << std::setprecision(y_precision) << tick;
+                svg_file << "<text x='" << (margin - 15) << "' y='" << (y_pos + 3);
+                svg_file << "' text-anchor='end' font-family='" << label_properties.font_family;
+                svg_file << "' font-size='" << tick_font_size << "' fill='" << label_properties.color.ToHex();
+                svg_file << "'>" << oss.str() << "</text>\n";
+            }
+        }
         
         for (size_t i = 0; i < data_x.size(); i++) {
             const auto& x_data = data_x[i];
@@ -435,13 +504,25 @@ namespace PlotLibrary {
         }
         
         if (!legend_labels.empty()) {
-            double legend_x = figure_width - margin - 100;
+            double legend_x = figure_width - margin - legend_properties.frame_width;
             double legend_y = margin + 20;
             
+            if (legend_properties.auto_size && legend_properties.frame_width == 0.0) {
+                size_t max_length = 0;
+                for (const auto& label : legend_labels) {
+                    max_length = std::max(max_length, label.length());
+                }
+                double char_width = label_properties.font_size * 0.6;
+                legend_properties.frame_width = max_length * char_width + 50.0;
+                legend_properties.frame_height = legend_labels.size() * 25.0 + 20.0;
+            }
+            
+            legend_x = figure_width - margin - legend_properties.frame_width;
+            
             if (legend_properties.frame_visible) {
-                svg_file << "<rect x='" << legend_x - 10 << "' y='" << legend_y - 10;
-                svg_file << "' width='120' height='" << legend_labels.size() * 25 + 10;
-                svg_file << "' fill='" << legend_properties.frame_color.ToHex();
+                svg_file << "<rect x='" << (legend_x - 10) << "' y='" << (legend_y - 10);
+                svg_file << "' width='" << legend_properties.frame_width << "' height='";
+                svg_file << legend_properties.frame_height << "' fill='" << legend_properties.frame_color.ToHex();
                 svg_file << "' opacity='" << legend_properties.frame_alpha;
                 svg_file << "' stroke='black' stroke-width='1'/>\n";
             }
@@ -451,19 +532,18 @@ namespace PlotLibrary {
                     const auto& style = styles[i];
                     double y = legend_y + i * 25;
                     
-                    svg_file << "<line x1='" << legend_x << "' y1='" << y + 5;
-                    svg_file << "' x2='" << legend_x + 20 << "' y2='" << y + 5;
+                    svg_file << "<line x1='" << legend_x << "' y1='" << (y + 5);
+                    svg_file << "' x2='" << (legend_x + 20) << "' y2='" << (y + 5);
                     svg_file << "' stroke='" << style.color.ToHex() << "' stroke-width='2'/>\n";
                     
                     if (style.marker_style != MarkerStyle::NONE) {
                         std::string marker_path = GetMarkerPath(style.marker_style);
-                        svg_file << "<path d='" << marker_path << "' transform='translate(";
-                        svg_file << legend_x + 10 << "," << y + 5 << ")' fill='";
-                        svg_file << style.marker_face_color.ToHex() << "' stroke='";
-                        svg_file << style.marker_edge_color.ToHex() << "' stroke-width='1'/>\n";
+                        svg_file << "<path d='" << marker_path << "' transform='translate(" << (legend_x + 10);
+                        svg_file << "," << (y + 5) << ")' fill='" << style.marker_face_color.ToHex();
+                        svg_file << "' stroke='" << style.marker_edge_color.ToHex() << "' stroke-width='1'/>\n";
                     }
                     
-                    svg_file << "<text x='" << legend_x + 30 << "' y='" << y + 8;
+                    svg_file << "<text x='" << (legend_x + 30) << "' y='" << (y + 8);
                     svg_file << "' font-family='Arial' font-size='12'>" << legend_labels[i] << "</text>\n";
                 }
             }
@@ -531,6 +611,38 @@ namespace PlotLibrary {
         grid_style = style;
         grid_color = color;
         grid_alpha = alpha;
+    }
+
+        void Figure::SetXTicks(const std::vector<double>& ticks) {
+        x_ticks = ticks;
+    }
+
+    void Figure::SetYTicks(const std::vector<double>& ticks) {
+        y_ticks = ticks;
+    }
+
+    void Figure::SetXRange(double min, double max) {
+        limits.x_min = min;
+        limits.x_max = max;
+        limits.auto_x = false;
+    }
+
+    void Figure::SetYRange(double min, double max) {
+        limits.y_min = min;
+        limits.y_max = max;
+        limits.auto_y = false;
+    }
+
+    void Figure::SetLegendAutoSize(bool auto_size) {
+        legend_properties.auto_size = auto_size;
+    }
+
+    void Figure::SetXPrecision(int precision) {
+    this->x_precision = precision > 0 ? precision : 2;
+    }
+
+    void Figure::SetYPrecision(int precision) {
+        this->y_precision = precision > 0 ? precision : 2;
     }
 
     Color Figure::CreateColor(double r, double g, double b, double a) {

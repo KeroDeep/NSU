@@ -97,6 +97,9 @@ namespace PlotLibrary {
         bool frame_visible;
         Color frame_color;
         double frame_alpha;
+        double frame_width;
+        double frame_height;
+        bool auto_size;
         LegendProperties();
     };
 
@@ -118,6 +121,10 @@ namespace PlotLibrary {
         std::vector<PlotStyle> styles;
         AxisLimits limits;
         std::string last_saved_filename;
+        std::vector<double> x_ticks;
+        std::vector<double> y_ticks;
+        int x_precision;
+        int y_precision;
 
     public:
         Figure(double width, double height, double dpi_value = 100.0);
@@ -139,6 +146,13 @@ namespace PlotLibrary {
         void Grid(bool visible, const std::string& style = "--", Color color = Colors::GRAY, double alpha = 0.3);
         Color CreateColor(double r, double g, double b, double a = 1.0);
         PlotStyle CreateStyle(Color color, double line_width, LineStyle line_style, MarkerStyle marker_style = MarkerStyle::NONE, double marker_size = 6.0);
+        void SetXTicks(const std::vector<double>& ticks);
+        void SetYTicks(const std::vector<double>& ticks);
+        void SetXRange(double min, double max);
+        void SetYRange(double min, double max);
+        void SetLegendAutoSize(bool auto_size);
+        void SetXPrecision(int precision);
+        void SetYPrecision(int precision);
     };
 
     std::vector<double> Linspace(double start, double end, int num);

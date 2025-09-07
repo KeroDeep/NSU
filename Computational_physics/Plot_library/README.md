@@ -185,6 +185,8 @@
 - **void Grid(bool visible, const std::string& style = "--", Color color = Colors::GRAY, double alpha = 0.3)**: Включает/выключает сетку, задаёт стиль, цвет и прозрачность.
 - **Color CreateColor(double r, double g, double b, double a = 1.0)**: Создаёт пользовательский цвет.
 - **PlotStyle CreateStyle(Color color, double line_width, LineStyle line_style, MarkerStyle marker_style = MarkerStyle::NONE, double marker_size = 6.0)**: Создаёт стиль для графика.
+- **void SetXPrecision(int precision)**: Задаёт точность для подписей оси X (по умолчанию 2).
+- **void SetYPrecision(int precision)**: Задаёт точность для подписей оси Y (по умолчанию 2).
 
 #### Сохранение и отображение:
 
