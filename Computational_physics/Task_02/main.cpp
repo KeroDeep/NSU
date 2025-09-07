@@ -5,9 +5,11 @@ using namespace std;
 
 double find_machine_epsilon_double() {
     double epsilon = 1.0;
+
     while (1.0 + epsilon / 2.0 != 1.0) {
         epsilon /= 2.0;
     }
+
     return epsilon;
 }
 
@@ -119,6 +121,7 @@ double dichotomy_method(double width, double height) {
     }
 
     double point_middle;
+
     for (int i = 0; i < max_iterations; i++) {
         point_middle = (point_left + point_right) / 2.0;
         double function_middle = energy_equation(point_middle, width, height);
@@ -150,6 +153,7 @@ double iteration_method(double width, double height) {
     
     for (int i = 0; i < max_iterations; i++) {
         double function_current = energy_equation(point_current, width, height);
+
         if (isnan(function_current)) {
             cout << endl << "Function undefined in iteration method" << endl;
             return NAN;
@@ -157,8 +161,13 @@ double iteration_method(double width, double height) {
         
         double point_next = point_current - relaxation * function_current;
         
-        if (point_next >= 0) point_next = -tolerance;
-        if (point_next <= -height) point_next = -height + tolerance;
+        if (point_next >= 0) {
+            point_next = -tolerance;
+        }
+
+        if (point_next <= -height) {
+            point_next = -height + tolerance;
+        }
         
         if (abs(point_next - point_current) < tolerance) {
             return point_next;
@@ -177,6 +186,7 @@ double newton_method(double width, double height) {
     
     for (int i = 0; i < max_iterations; i++) {
         double function_current = energy_equation(point_current, width, height);
+
         if (isnan(function_current)) {
             cout << endl << "Function undefined in Newton method" << endl;
             return NAN;
@@ -199,8 +209,13 @@ double newton_method(double width, double height) {
         
         double point_next = point_current - function_current / derivative;
         
-        if (point_next >= 0) point_next = -tolerance;
-        if (point_next <= -height) point_next = -height + tolerance;
+        if (point_next >= 0) {
+            point_next = -tolerance;
+        }
+
+        if (point_next <= -height) {
+            point_next = -height + tolerance;
+        }
         
         if (abs(point_next - point_current) < tolerance) {
             return point_next;
@@ -238,13 +253,16 @@ double muller_method(double width, double height) {
         double c = function_2;
         
         double discriminant = b * b - 4.0 * a * c;
+
         if (discriminant < 0) {
             cout << endl << "Complex roots in Muller method" << endl;
             return NAN;
         }
+
         discriminant = sqrt(discriminant);
         
         double denominator = (abs(b + discriminant) > abs(b - discriminant)) ? (b + discriminant) : (b - discriminant);
+
         if (abs(denominator) < tolerance) {
             cout << endl << "Small denominator in Muller method" << endl;
             break;
@@ -253,8 +271,13 @@ double muller_method(double width, double height) {
         double delta_x = -2.0 * c / denominator;
         double x_3 = x_2 + delta_x;
         
-        if (x_3 >= 0) x_3 = -tolerance;
-        if (x_3 <= -height) x_3 = -height + tolerance;
+        if (x_3 >= 0) {
+            x_3 = -tolerance;
+        }
+
+        if (x_3 <= -height) {
+            x_3 = -height + tolerance;
+        }
         
         if (abs(delta_x) < tolerance) {
             return x_3;
@@ -275,6 +298,7 @@ double stephenson_method(double width, double height) {
     
     for (int i = 0; i < max_iterations; i++) {
         double function_current = energy_equation(point_current, width, height);
+
         if (isnan(function_current)) {
             cout << endl << "Function undefined in Stephenson method" << endl;
             return NAN;
@@ -306,8 +330,13 @@ double stephenson_method(double width, double height) {
         
         double point_next = point_current - function_current / denominator;
         
-        if (point_next >= 0) point_next = -tolerance;
-        if (point_next <= -height) point_next = -height + tolerance;
+        if (point_next >= 0) {
+            point_next = -tolerance;
+        }
+
+        if (point_next <= -height) {
+            point_next = -height + tolerance;
+        }
         
         if (abs(point_next - point_current) < tolerance) {
             return point_next;

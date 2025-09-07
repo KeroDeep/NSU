@@ -4,13 +4,14 @@
 using namespace std;
 
 int find_mantissa_bits_double() {
-    double num = 1.0;
+    double number = 1.0;
     int bits = 0;
     
-    while (1.0 + num != 1.0) {
-        num /= 2.0;
+    while (1.0 + number != 1.0) {
+        number /= 2.0;
         bits++;
     }
+    
     return bits;
 }
 
@@ -98,8 +99,8 @@ double error_calculation(double exact, double approximate) {
 int main() {
     cout.precision(find_mantissa_bits_double());
 
-    const double a = -1.0;
-    const double b = 1.0;
+    const double x_minimum = -1.0;
+    const double x_maximum = 1.0;
     const int accuracy = 100;
     const double exact_main = atan(1.0) - atan(-1.0);
     const double exact_error = 1.0;
@@ -109,42 +110,42 @@ int main() {
     cout << "Main integral calculation:" << endl;
     
     cout << "Exact solution: " << exact_main << endl;
-    cout << "Left rectangle method: " << left_rectangle_method(main_integral, a, b, accuracy) << endl;
-    cout << "Right rectangle method: " << right_rectangle_method(main_integral, a, b, accuracy) << endl;
-    cout << "Medium rectangle method: " << medium_rectangle_method(main_integral, a, b, accuracy) << endl;
-    cout << "Trapezoidal method: " << trapezoidal_method(main_integral, a, b, accuracy) << endl;
-    cout << "Simpson method: " << simpson_method(main_integral, a, b, accuracy) << endl;
+    cout << "Left rectangle method: " << left_rectangle_method(main_integral, x_minimum, x_maximum, accuracy) << endl;
+    cout << "Right rectangle method: " << right_rectangle_method(main_integral, x_minimum, x_maximum, accuracy) << endl;
+    cout << "Medium rectangle method: " << medium_rectangle_method(main_integral, x_minimum, x_maximum, accuracy) << endl;
+    cout << "Trapezoidal method: " << trapezoidal_method(main_integral, x_minimum, x_maximum, accuracy) << endl;
+    cout << "Simpson method: " << simpson_method(main_integral, x_minimum, x_maximum, accuracy) << endl;
 
     cout << endl;
 
     cout << "Error integral calculation:" << endl;
     
     cout << "Exact solution: " << exact_error << endl;
-    cout << "Left rectangle method: " << left_rectangle_method(error_integral, a, b, accuracy) << endl;
-    cout << "Right rectangle method: " << right_rectangle_method(error_integral, a, b, accuracy) << endl;
-    cout << "Medium rectangle method: " << medium_rectangle_method(error_integral, a, b, accuracy) << endl;
-    cout << "Trapezoidal method: " << trapezoidal_method(error_integral, a, b, accuracy) << endl;
-    cout << "Simpson method: " << simpson_method(error_integral, a, b, accuracy) << endl;
+    cout << "Left rectangle method: " << left_rectangle_method(error_integral, x_minimum, x_maximum, accuracy) << endl;
+    cout << "Right rectangle method: " << right_rectangle_method(error_integral, x_minimum, x_maximum, accuracy) << endl;
+    cout << "Medium rectangle method: " << medium_rectangle_method(error_integral, x_minimum, x_maximum, accuracy) << endl;
+    cout << "Trapezoidal method: " << trapezoidal_method(error_integral, x_minimum, x_maximum, accuracy) << endl;
+    cout << "Simpson method: " << simpson_method(error_integral, x_minimum, x_maximum, accuracy) << endl;
     
     cout << endl;
 
     cout << "Methods accuracy for main integral:" << endl;
 
-    cout << "Left rectangle method: " << error_calculation(exact_main, left_rectangle_method(main_integral, a, b, accuracy)) << endl;
-    cout << "Right rectangle method: " << error_calculation(exact_main, right_rectangle_method(main_integral, a, b, accuracy)) << endl;
-    cout << "Medium rectangle method: " << error_calculation(exact_main, medium_rectangle_method(main_integral, a, b, accuracy)) << endl;
-    cout << "Trapezoidal method: " << error_calculation(exact_main, trapezoidal_method(main_integral, a, b, accuracy)) << endl;
-    cout << "Simpson method: " << error_calculation(exact_main, simpson_method(main_integral, a, b, accuracy)) << endl;
+    cout << "Left rectangle method: " << error_calculation(exact_main, left_rectangle_method(main_integral, x_minimum, x_maximum, accuracy)) << endl;
+    cout << "Right rectangle method: " << error_calculation(exact_main, right_rectangle_method(main_integral, x_minimum, x_maximum, accuracy)) << endl;
+    cout << "Medium rectangle method: " << error_calculation(exact_main, medium_rectangle_method(main_integral, x_minimum, x_maximum, accuracy)) << endl;
+    cout << "Trapezoidal method: " << error_calculation(exact_main, trapezoidal_method(main_integral, x_minimum, x_maximum, accuracy)) << endl;
+    cout << "Simpson method: " << error_calculation(exact_main, simpson_method(main_integral, x_minimum, x_maximum, accuracy)) << endl;
 
     cout << endl;
 
     cout << "Methods accuracy for error integral:" << endl;
 
-    cout << "Left rectangle method: " << error_calculation(exact_error, left_rectangle_method(error_integral, a, b, accuracy)) << endl;
-    cout << "Right rectangle method: " << error_calculation(exact_error, right_rectangle_method(error_integral, a, b, accuracy)) << endl;
-    cout << "Medium rectangle method: " << error_calculation(exact_error, medium_rectangle_method(error_integral, a, b, accuracy)) << endl;
-    cout << "Trapezoidal method: " << error_calculation(exact_error, trapezoidal_method(error_integral, a, b, accuracy)) << endl;
-    cout << "Simpson method: " << error_calculation(exact_error, simpson_method(error_integral, a, b, accuracy)) << endl;
+    cout << "Left rectangle method: " << error_calculation(exact_error, left_rectangle_method(error_integral, x_minimum, x_maximum, accuracy)) << endl;
+    cout << "Right rectangle method: " << error_calculation(exact_error, right_rectangle_method(error_integral, x_minimum, x_maximum, accuracy)) << endl;
+    cout << "Medium rectangle method: " << error_calculation(exact_error, medium_rectangle_method(error_integral, x_minimum, x_maximum, accuracy)) << endl;
+    cout << "Trapezoidal method: " << error_calculation(exact_error, trapezoidal_method(error_integral, x_minimum, x_maximum, accuracy)) << endl;
+    cout << "Simpson method: " << error_calculation(exact_error, simpson_method(error_integral, x_minimum, x_maximum, accuracy)) << endl;
 
     cout << endl;
 

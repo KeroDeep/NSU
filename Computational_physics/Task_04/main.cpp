@@ -77,9 +77,9 @@ int main() {
 
     const int accuracy = 1000;
     const double delta = 1e-6;
-    const double x_min = 0.0;
-    const double x_max = 2.0 * M_PI;
-    vector<double> x_values = Linspace(x_min, x_max, 500);
+    const double x_minimum = 0.0;
+    const double x_maximum = 2.0 * M_PI;
+    vector<double> x_values = Linspace(x_minimum, x_maximum, 500);
 
     Figure bessel_functions_simpson_figure(800, 600);
     vector<int> m_values = {0, 1, 2, 3, 4, 5, 6, 7};
@@ -110,7 +110,7 @@ int main() {
     bessel_functions_simpson_figure.SetTitle("Bessel functions for different m (Simpson method)");
     bessel_functions_simpson_figure.SetXLabel("x");
     bessel_functions_simpson_figure.SetYLabel("J_m(x)");
-    bessel_functions_simpson_figure.SetXLimit(x_min, x_max);
+    bessel_functions_simpson_figure.SetXLimit(x_minimum, x_maximum);
     bessel_functions_simpson_figure.SetLegend(bessel_functions_legends);
     bessel_functions_simpson_figure.Save("bessel_functions_simpson.svg");
 
@@ -132,7 +132,7 @@ int main() {
     bessel_functions_trapezoidal_figure.SetTitle("Bessel functions for different m (Trapezoidal method)");
     bessel_functions_trapezoidal_figure.SetXLabel("x");
     bessel_functions_trapezoidal_figure.SetYLabel("J_m(x)");
-    bessel_functions_trapezoidal_figure.SetXLimit(x_min, x_max);
+    bessel_functions_trapezoidal_figure.SetXLimit(x_minimum, x_maximum);
     bessel_functions_trapezoidal_figure.SetLegend(bessel_functions_trap_legends);
     bessel_functions_trapezoidal_figure.Save("bessel_functions_trapezoidal.svg");
 
@@ -154,7 +154,7 @@ int main() {
     bessel_derivatives_simpson_figure.SetTitle("Derivatives of Bessel functions for different m (Simpson method)");
     bessel_derivatives_simpson_figure.SetXLabel("x");
     bessel_derivatives_simpson_figure.SetYLabel("J_m'(x)");
-    bessel_derivatives_simpson_figure.SetXLimit(x_min, x_max);
+    bessel_derivatives_simpson_figure.SetXLimit(x_minimum, x_maximum);
     bessel_derivatives_simpson_figure.SetLegend(bessel_derivatives_legends);
     bessel_derivatives_simpson_figure.Save("bessel_derivatives_simpson.svg");
 
@@ -176,7 +176,7 @@ int main() {
     bessel_derivatives_trapezoidal_figure.SetTitle("Derivatives of Bessel functions for different m (Trapezoidal method)");
     bessel_derivatives_trapezoidal_figure.SetXLabel("x");
     bessel_derivatives_trapezoidal_figure.SetYLabel("J_m'(x)");
-    bessel_derivatives_trapezoidal_figure.SetXLimit(x_min, x_max);
+    bessel_derivatives_trapezoidal_figure.SetXLimit(x_minimum, x_maximum);
     bessel_derivatives_trapezoidal_figure.SetLegend(bessel_derivatives_trap_legends);
     bessel_derivatives_trapezoidal_figure.Save("bessel_derivatives_trapezoidal.svg");
 
@@ -273,7 +273,7 @@ int main() {
     error_figure.SetTitle("Equality execution accuracy: J_0'(x) + J_1(x) = 0");
     error_figure.SetXLabel("x");
     error_figure.SetYLabel("log_10(error)");
-    error_figure.SetXLimit(x_min, x_max);
+    error_figure.SetXLimit(x_minimum, x_maximum);
     error_figure.SetLegend({"Simpson method", "Trapezoidal method", "Target precision"});
     error_figure.Save("equation_error.svg");
     
