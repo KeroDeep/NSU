@@ -80,7 +80,7 @@ int main() {
     const double x_minimum = 0.0;
     const double x_maximum = 10.0;
     vector<double> x_values = Linspace(x_minimum, x_maximum, 1000);
-    const int node_counts[] = {5, 10, 20, 50};
+    const int node_counts[] = {2, 3, 4, 5, 6, 7, 8, 9, 10};
 
     for (int n : node_counts) {
         vector<double> x_nodes(n);
@@ -109,12 +109,12 @@ int main() {
         figure.Plot(x_values, y_lagrange, style_1);
         figure.Plot(x_values, y_bessel, style_2);
         figure.Plot(x_values, y_difference, style_3);
-        figure.SetTitle("Lagrange n = " + to_string(n));
+        figure.SetTitle("Lagrange polynomial for n = " + to_string(n));
         figure.SetXLabel("x");
         figure.SetYLabel("Value");
         figure.SetXLimit(x_minimum, x_maximum);
         figure.SetLegend({"P_n(x)", "J_0(x)", "|P_n(x) - J_0(x)|"});
-        figure.Save("Lagrange n = " + to_string(n) + ".svg");
+        figure.Save("Lagrange polynomial for n = " + to_string(n) + ".svg");
     }
 
     return 0;
