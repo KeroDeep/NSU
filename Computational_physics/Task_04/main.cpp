@@ -11,11 +11,11 @@ using namespace std;
 using namespace PlotLibrary;
 
 int find_mantissa_bits_double() {
-    double num = 1.0;
+    double number = 1.0;
     int bits = 0;
 
-    while (1.0 + num != 1.0) {
-        num /= 2.0;
+    while (1.0 + number != 1.0) {
+        number /= 2.0;
         bits++;
     }
 

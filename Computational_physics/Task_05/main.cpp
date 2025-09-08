@@ -114,7 +114,7 @@ int main() {
         figure.SetYLabel("Value");
         figure.SetXLimit(x_minimum, x_maximum);
         figure.SetLegend({"P_n(x)", "J_0(x)", "|P_n(x) - J_0(x)|"});
-        figure.Save("Lagrange polynomial for n = " + to_string(n) + ".svg");
+        figure.Save("lagrange_polynomial_for_n=" + to_string(n) + ".svg");
     }
 
     return 0;
