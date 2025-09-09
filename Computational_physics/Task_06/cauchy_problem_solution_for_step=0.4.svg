@@ -52,15 +52,15 @@
 <line x1='720' y1='520' x2='720' y2='525' stroke='#000000' stroke-width='1'/>
 <text x='720' y='535' text-anchor='middle' font-family='Arial' font-size='10' fill='#000000'>3.00</text>
 <line x1='75' y1='520' x2='80' y2='520' stroke='#000000' stroke-width='1'/>
-<text x='65' y='523' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>-0.02</text>
+<text x='65' y='523' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>-0.03</text>
 <line x1='75' y1='476' x2='80' y2='476' stroke='#000000' stroke-width='1'/>
-<text x='65' y='479' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.09</text>
+<text x='65' y='479' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.08</text>
 <line x1='75' y1='432' x2='80' y2='432' stroke='#000000' stroke-width='1'/>
 <text x='65' y='435' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.19</text>
 <line x1='75' y1='388' x2='80' y2='388' stroke='#000000' stroke-width='1'/>
 <text x='65' y='391' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.30</text>
 <line x1='75' y1='344' x2='80' y2='344' stroke='#000000' stroke-width='1'/>
-<text x='65' y='347' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.41</text>
+<text x='65' y='347' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.40</text>
 <line x1='75' y1='300' x2='80' y2='300' stroke='#000000' stroke-width='1'/>
 <text x='65' y='303' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.51</text>
 <line x1='75' y1='256' x2='80' y2='256' stroke='#000000' stroke-width='1'/>
@@ -73,20 +73,20 @@
 <text x='65' y='127' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.94</text>
 <line x1='75' y1='80' x2='80' y2='80' stroke='#000000' stroke-width='1'/>
 <text x='65' y='83' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>1.05</text>
-<polyline points='80,100 165.333,264.608 250.667,363.373 336,422.632 421.333,458.187 506.667,479.52 592,492.32 677.333,500 ' fill='none' stroke='#0000FF' stroke-width='1' stroke-dasharray='' opacity='1'/>
-<polyline points='80,100 165.333,231.686 250.667,321.233 336,382.125 421.333,423.531 506.667,451.688 592,470.834 677.333,483.853 ' fill='none' stroke='#FF0000' stroke-width='1' stroke-dasharray='' opacity='1'/>
-<polyline points='80,100 165.333,235.637 250.667,326.568 336,387.528 421.333,428.396 506.667,455.794 592,474.161 677.333,486.474 ' fill='none' stroke='#007F00' stroke-width='1' stroke-dasharray='' opacity='1'/>
-<polyline points='80,100 165.333,235.67 250.667,326.612 336,387.573 421.333,428.435 506.667,455.827 592,474.188 677.333,486.495 ' fill='none' stroke='#000000' stroke-width='1' stroke-dasharray='' opacity='1'/>
+<polyline points='80,100 165.333,263.665 250.667,361.864 336,420.784 421.333,456.136 506.667,477.347 592,490.073 677.333,497.709 720,500 ' fill='none' stroke='#0000FF' stroke-width='1' stroke-dasharray='' opacity='1'/>
+<polyline points='80,100 165.333,230.932 250.667,319.966 336,380.509 421.333,421.678 506.667,449.674 592,468.71 677.333,481.655 720,486.607 ' fill='none' stroke='#FF0000' stroke-width='1' stroke-dasharray='5,5' opacity='1'/>
+<polyline points='80,100 165.333,234.86 250.667,325.27 336,385.881 421.333,426.515 506.667,453.756 592,472.018 677.333,484.261 720,488.775 ' fill='none' stroke='#007F00' stroke-width='1' stroke-dasharray='2,2' opacity='1'/>
+<polyline points='80,100 165.333,234.893 250.667,325.314 336,385.926 421.333,426.555 506.667,453.789 592,472.045 677.333,484.282 ' fill='none' stroke='#000000' stroke-width='1' stroke-dasharray='' opacity='1'/>
 <text x='400' y='40' text-anchor='middle' font-family='Arial' font-size='12' fill='#000000'>Cauchy problem solution for step = 0.4</text>
 <text x='400' y='573.333' text-anchor='middle' font-family='Arial' font-size='12' fill='#000000'>t</text>
 <text x='26.6667' y='300' text-anchor='middle' transform='rotate(-90,26.6667,300)' font-family='Arial' font-size='12' fill='#000000'>x(t)</text>
 <rect x='590' y='90' width='120' height='0' fill='#FFFFFF' opacity='0.8' stroke='black' stroke-width='1'/>
 <line x1='600' y1='105' x2='620' y2='105' stroke='#0000FF' stroke-width='2' opacity='1'/>
 <text x='630' y='108' font-family='Arial' font-size='12'>Euler</text>
-<line x1='600' y1='130' x2='620' y2='130' stroke='#FF0000' stroke-width='2' opacity='1'/>
+<line x1='600' y1='130' x2='620' y2='130' stroke='#FF0000' stroke-width='2' stroke-dasharray='5,5' opacity='1'/>
 <text x='630' y='133' font-family='Arial' font-size='12'>Runge-Kutta 2</text>
-<line x1='600' y1='155' x2='620' y2='155' stroke='#007F00' stroke-width='2' opacity='1'/>
+<line x1='600' y1='155' x2='620' y2='155' stroke='#007F00' stroke-width='2' stroke-dasharray='2,2' opacity='1'/>
 <text x='630' y='158' font-family='Arial' font-size='12'>Runge-Kutta 4</text>
 <line x1='600' y1='180' x2='620' y2='180' stroke='#000000' stroke-width='2' opacity='1'/>
-<text x='630' y='183' font-family='Arial' font-size='12'>Exact solution</text>
+<text x='630' y='183' font-family='Arial' font-size='12'>Exact Solution</text>
 </svg>

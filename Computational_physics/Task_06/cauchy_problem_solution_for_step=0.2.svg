@@ -52,19 +52,19 @@
 <line x1='720' y1='520' x2='720' y2='525' stroke='#000000' stroke-width='1'/>
 <text x='720' y='535' text-anchor='middle' font-family='Arial' font-size='10' fill='#000000'>3.00</text>
 <line x1='75' y1='520' x2='80' y2='520' stroke='#000000' stroke-width='1'/>
-<text x='65' y='523' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>-0.00</text>
+<text x='65' y='523' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>-0.01</text>
 <line x1='75' y1='476' x2='80' y2='476' stroke='#000000' stroke-width='1'/>
-<text x='65' y='479' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.10</text>
+<text x='65' y='479' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.09</text>
 <line x1='75' y1='432' x2='80' y2='432' stroke='#000000' stroke-width='1'/>
-<text x='65' y='435' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.21</text>
+<text x='65' y='435' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.20</text>
 <line x1='75' y1='388' x2='80' y2='388' stroke='#000000' stroke-width='1'/>
 <text x='65' y='391' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.31</text>
 <line x1='75' y1='344' x2='80' y2='344' stroke='#000000' stroke-width='1'/>
-<text x='65' y='347' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.42</text>
+<text x='65' y='347' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.41</text>
 <line x1='75' y1='300' x2='80' y2='300' stroke='#000000' stroke-width='1'/>
 <text x='65' y='303' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.52</text>
 <line x1='75' y1='256' x2='80' y2='256' stroke='#000000' stroke-width='1'/>
-<text x='65' y='259' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.63</text>
+<text x='65' y='259' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.62</text>
 <line x1='75' y1='212' x2='80' y2='212' stroke='#000000' stroke-width='1'/>
 <text x='65' y='215' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.73</text>
 <line x1='75' y1='168' x2='80' y2='168' stroke='#000000' stroke-width='1'/>
@@ -73,20 +73,20 @@
 <text x='65' y='127' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>0.94</text>
 <line x1='75' y1='80' x2='80' y2='80' stroke='#000000' stroke-width='1'/>
 <text x='65' y='83' text-anchor='end' font-family='Arial' font-size='10' fill='#000000'>1.05</text>
-<polyline points='80,100 122.667,183.68 165.333,250.625 208,304.18 250.667,347.024 293.333,381.3 336,408.72 378.667,430.656 421.333,448.205 464,462.245 506.667,473.476 549.333,482.461 592,489.649 634.667,495.4 677.333,500 ' fill='none' stroke='#0000FF' stroke-width='1' stroke-dasharray='' opacity='1'/>
-<polyline points='80,100 122.667,175.312 165.333,237.068 208,287.708 250.667,329.233 293.333,363.283 336,391.205 378.667,414.1 421.333,432.874 464,448.269 506.667,460.893 549.333,471.245 592,479.733 634.667,486.693 677.333,492.401 ' fill='none' stroke='#FF0000' stroke-width='1' stroke-dasharray='' opacity='1'/>
-<polyline points='80,100 122.667,175.842 165.333,237.937 208,288.776 250.667,330.399 293.333,364.478 336,392.379 378.667,415.223 421.333,433.926 464,449.238 506.667,461.775 549.333,472.04 592,480.444 634.667,487.324 677.333,492.957 ' fill='none' stroke='#007F00' stroke-width='1' stroke-dasharray='' opacity='1'/>
-<polyline points='80,100 122.667,175.843 165.333,237.939 208,288.778 250.667,330.402 293.333,364.48 336,392.381 378.667,415.225 421.333,433.928 464,449.24 506.667,461.777 549.333,472.041 592,480.445 634.667,487.325 677.333,492.958 ' fill='none' stroke='#000000' stroke-width='1' stroke-dasharray='' opacity='1'/>
+<polyline points='80,100 122.667,182.917 165.333,249.251 208,302.318 250.667,344.772 293.333,378.735 336,405.905 378.667,427.642 421.333,445.031 464,458.942 506.667,470.071 549.333,478.974 592,486.097 634.667,491.795 677.333,496.353 720,500 ' fill='none' stroke='#0000FF' stroke-width='1' stroke-dasharray='' opacity='1'/>
+<polyline points='80,100 122.667,174.626 165.333,235.819 208,285.997 250.667,327.143 293.333,360.883 336,388.55 378.667,411.236 421.333,429.84 464,445.094 506.667,457.603 549.333,467.86 592,476.271 634.667,483.168 677.333,488.823 720,493.461 ' fill='none' stroke='#FF0000' stroke-width='1' stroke-dasharray='5,5' opacity='1'/>
+<polyline points='80,100 122.667,175.151 165.333,236.679 208,287.055 250.667,328.299 293.333,362.067 336,389.713 378.667,412.349 421.333,430.881 464,446.054 506.667,458.477 549.333,468.648 592,476.975 634.667,483.793 677.333,489.375 720,493.945 ' fill='none' stroke='#007F00' stroke-width='1' stroke-dasharray='2,2' opacity='1'/>
+<polyline points='80,100 122.667,175.152 165.333,236.681 208,287.057 250.667,328.301 293.333,362.069 336,389.716 378.667,412.351 421.333,430.883 464,446.056 506.667,458.479 549.333,468.649 592,476.977 634.667,483.794 677.333,489.376 ' fill='none' stroke='#000000' stroke-width='1' stroke-dasharray='' opacity='1'/>
 <text x='400' y='40' text-anchor='middle' font-family='Arial' font-size='12' fill='#000000'>Cauchy problem solution for step = 0.2</text>
 <text x='400' y='573.333' text-anchor='middle' font-family='Arial' font-size='12' fill='#000000'>t</text>
 <text x='26.6667' y='300' text-anchor='middle' transform='rotate(-90,26.6667,300)' font-family='Arial' font-size='12' fill='#000000'>x(t)</text>
 <rect x='590' y='90' width='120' height='0' fill='#FFFFFF' opacity='0.8' stroke='black' stroke-width='1'/>
 <line x1='600' y1='105' x2='620' y2='105' stroke='#0000FF' stroke-width='2' opacity='1'/>
 <text x='630' y='108' font-family='Arial' font-size='12'>Euler</text>
-<line x1='600' y1='130' x2='620' y2='130' stroke='#FF0000' stroke-width='2' opacity='1'/>
+<line x1='600' y1='130' x2='620' y2='130' stroke='#FF0000' stroke-width='2' stroke-dasharray='5,5' opacity='1'/>
 <text x='630' y='133' font-family='Arial' font-size='12'>Runge-Kutta 2</text>
-<line x1='600' y1='155' x2='620' y2='155' stroke='#007F00' stroke-width='2' opacity='1'/>
+<line x1='600' y1='155' x2='620' y2='155' stroke='#007F00' stroke-width='2' stroke-dasharray='2,2' opacity='1'/>
 <text x='630' y='158' font-family='Arial' font-size='12'>Runge-Kutta 4</text>
 <line x1='600' y1='180' x2='620' y2='180' stroke='#000000' stroke-width='2' opacity='1'/>
-<text x='630' y='183' font-family='Arial' font-size='12'>Exact solution</text>
+<text x='630' y='183' font-family='Arial' font-size='12'>Exact Solution</text>
 </svg>
