@@ -8,19 +8,7 @@
 using namespace std;
 using namespace PlotLibrary;
 
-int find_mantissa_bits_double() {
-    double number = 1.0;
-    int bits = 0;
-    
-    while (1.0 + number != 1.0) {
-        number /= 2.0;
-        bits++;
-    }
-
-    return bits;
-}
-
-double U(double x) {
+double energy_equation(double x) {
     return 0.5 * x * x;
 }
 
@@ -35,20 +23,20 @@ void build_hamiltonian(vector<double>& a, vector<double>& b, vector<double>& c, 
     }
 
     for (int i = 0; i < intervals_number; ++i) {
-        b[i] = 1.0 / (step * step) + U(x[i]);
+        b[i] = 1.0 / (step * step) + energy_equation(x[i]);
     }
 
     b[0] = 1.0; a[0] = 0.0;
     c[intervals_number - 2] = 0.0; b[intervals_number - 1] = 1.0;
 }
 
-void tridiagonal_solve(const vector<double>& a, const vector<double>& b, const vector<double>& c, const vector<double>& u, vector<double>& v, double mu, int intervals_number) {
+void tridiagonal_solver(const vector<double>& a, const vector<double>& b, const vector<double>& c, const vector<double>& u, vector<double>& v, double lambda, int intervals_number) {
     int n = b.size();
     vector<double> a_new = a;
     vector<double> b_new(n);
 
     for (int i = 0; i < n; ++i) {
-        b_new[i] = b[i] - mu;
+        b_new[i] = b[i] - lambda;
     }
 
     vector<double> alpha(n - 1), beta(n);
@@ -74,57 +62,57 @@ void tridiagonal_solve(const vector<double>& a, const vector<double>& b, const v
 }
 
 double normalize(vector<double>& v, double step) {
-    double norm = 0.0;
+    double normalization = 0.0;
 
-    for (double val : v) {
-        norm += val * val;
+    for (double value : v) {
+        normalization += value * value;
     }
 
-    norm = sqrt(norm * step);
+    normalization = sqrt(normalization * step);
 
-    if (norm > 0.0) {
-        for (double& val : v) {
-            val /= norm;
+    if (normalization > 0.0) {
+        for (double& value : v) {
+            value /= normalization;
         }
     }
 
-    return norm;
+    return normalization;
 }
 
-void inverse_iteration(const vector<double>& a, const vector<double>& b, const vector<double>& c, vector<double>& psi, double& energy_numerical, double mu, int max_iter, double tolerance, int intervals_number, double step) {
+void inverse_iteration(const vector<double>& a, const vector<double>& b, const vector<double>& c, vector<double>& psi, double& energy_numerical, double lambda, int iterations_number, double tolerance, int intervals_number, double step) {
     int n = b.size();
     vector<double> u(n, 1.0);
     normalize(u, step);
 
-    double E_old = 0.0;
+    double energy_old = 0.0;
 
-    for (int iter = 0; iter < max_iter; ++iter) {
+    for (int iteration = 0; iteration < iterations_number; ++iteration) {
         vector<double> v(n);
-        tridiagonal_solve(a, b, c, u, v, mu, intervals_number);
+        tridiagonal_solver(a, b, c, u, v, lambda, intervals_number);
 
         normalize(v, step);
         
         energy_numerical = 0.0;
 
         for (int i = 0; i < n; ++i) {
-            double hu_i = b[i] * v[i];
+            double matrix_vector_i = b[i] * v[i];
 
             if (i > 0) {
-                hu_i += a[i - 1] * v[i - 1];
+                matrix_vector_i += a[i - 1] * v[i - 1];
             }
 
             if (i < n - 1) {
-                hu_i += c[i] * v[i + 1];
+                matrix_vector_i += c[i] * v[i + 1];
             }
 
-            energy_numerical += v[i] * hu_i;
+            energy_numerical += v[i] * matrix_vector_i;
         }
 
-        if (abs(energy_numerical - E_old) < tolerance) {
+        if (abs(energy_numerical - energy_old) < tolerance) {
             break;
         }
 
-        E_old = energy_numerical;
+        energy_old = energy_numerical;
         u = v;
     }
 
@@ -132,13 +120,11 @@ void inverse_iteration(const vector<double>& a, const vector<double>& b, const v
 }
 
 int main() {
-    cout.precision(find_mantissa_bits_double());
-
     const double pit_boundary = 10.0;
     const int intervals_number = 100;
     const double step = 2 * pit_boundary / intervals_number;
     const double tolerance = 1e-6;
-    const int max_iter = 100;
+    const int iterations_number = 100;
     vector<double> x(intervals_number);
 
     double energy_numerical;
@@ -152,24 +138,24 @@ int main() {
     build_hamiltonian(a, b, c, x, intervals_number, step);
 
     vector<double> psi(intervals_number);
-    inverse_iteration(a, b, c, psi, energy_numerical, 0.4, max_iter, tolerance, intervals_number, step);
+    inverse_iteration(a, b, c, psi, energy_numerical, 0.4, iterations_number, tolerance, intervals_number, step);
 
-    double norm = 0.0;
+    double normalization = 0.0;
 
-    for (double val : psi) {
-        norm += val * val;
+    for (double value : psi) {
+        normalization += value * value;
     }
 
-    norm = sqrt(norm * step);
+    normalization = sqrt(normalization * step);
 
-    for (double& val : psi) {
-        val /= norm;
+    for (double& value : psi) {
+        value /= normalization;
     }
 
-    vector<double> psi_anal(intervals_number);
+    vector<double> psi_analytic(intervals_number);
 
     for (int i = 0; i < intervals_number; ++i) {
-        psi_anal[i] = pow(1.0 / M_PI, 0.25) * exp(-0.5 * x[i] * x[i]);
+        psi_analytic[i] = pow(1.0 / M_PI, 0.25) * exp(-0.5 * x[i] * x[i]);
     }
 
     Figure figure(800, 600);
@@ -177,7 +163,7 @@ int main() {
     PlotStyle style_analytic = figure.CreateStyle(Colors::RED, 1.0, LineStyle::DASHED);
 
     figure.Plot(x, psi, style_numerical);
-    figure.Plot(x, psi_anal, style_analytic);
+    figure.Plot(x, psi_analytic, style_analytic);
 
     figure.SetTitle("Wave function graphic");
     figure.SetXLabel("x");
