@@ -39,85 +39,85 @@ void tridiagonal_solver(const vector<double>& a, const vector<double>& b, const 
     }
 }
 
-vector<double> difference_solver(int N, const string& boundary_conditions_type, const vector<double>& boundary_conditions_values, vector<double>& x_coordinates) {
+vector<double> difference_solver(int intervals_number, const string& boundary_conditions_type, const vector<double>& boundary_conditions_values, vector<double>& x_coordinates) {
     double left = -M_PI / 2;
     double right = M_PI / 2;
-    double step = (right - left) / N;
-    vector<double> x(N + 1);
+    double step = (right - left) / intervals_number;
+    vector<double> x(intervals_number + 1);
 
-    for (int i = 0; i <= N; ++i) {
+    for (int i = 0; i <= intervals_number; ++i) {
         x[i] = left + i * step;
     }
 
     x_coordinates = x;
 
-    vector<double> a(N - 1, 1.0);
-    vector<double> b(N - 1, -2.0);
-    vector<double> c(N - 1, 1.0);
-    vector<double> d(N - 1);
+    vector<double> a(intervals_number - 1, 1.0);
+    vector<double> b(intervals_number - 1, -2.0);
+    vector<double> c(intervals_number - 1, 1.0);
+    vector<double> d(intervals_number - 1);
     
     double alpha = boundary_conditions_values[0];
     double beta = boundary_conditions_values[1];
 
     if (boundary_conditions_type == "neumann") {
-        for (int i = 0; i < N - 1; ++i) {
+        for (int i = 0; i < intervals_number - 1; ++i) {
             d[i] = 0.0;
         }
     } else {
-        for (int i = 0; i < N - 1; ++i) {
+        for (int i = 0; i < intervals_number - 1; ++i) {
             d[i] = step * step * cos(x[i + 1]);
         }
     }
 
     if (boundary_conditions_type == "dirichlet") {
         d[0] -= alpha;
-        d[N - 2] -= beta;
+        d[intervals_number - 2] -= beta;
     } 
     else if (boundary_conditions_type == "neumann") {
         b[0] = -2.0 + 1.0;
         d[0] = -step * alpha;
         
-        b[N - 2] = -2.0 + 1.0;
-        d[N - 2] = step * beta;
+        b[intervals_number - 2] = -2.0 + 1.0;
+        d[intervals_number - 2] = step * beta;
     } 
     else if (boundary_conditions_type == "mixed") {
         d[0] -= alpha;
-        b[N - 2] = -2.0 + 1.0;
-        d[N - 2] = step * step * cos(x[N - 1]) + step * beta;
+        b[intervals_number - 2] = -2.0 + 1.0;
+        d[intervals_number - 2] = step * step * cos(x[intervals_number - 1]) + step * beta;
     } 
     else {
         return {};
     }
 
-    vector<double> y_interior(N - 1);
+    vector<double> y_interior(intervals_number - 1);
     tridiagonal_solver(a, b, c, d, y_interior);
 
-    vector<double> y(N + 1);
+    vector<double> y(intervals_number + 1);
     
     if (boundary_conditions_type == "dirichlet") {
         y[0] = alpha;
-        y[N] = beta;
+        y[intervals_number] = beta;
 
-        for (int i = 1; i < N; ++i) {
+        for (int i = 1; i < intervals_number; ++i) {
             y[i] = y_interior[i - 1];
         }
     } 
     else if (boundary_conditions_type == "neumann") {
-        for (int i = 0; i < N - 1; ++i) {
+        for (int i = 0; i < intervals_number - 1; ++i) {
             y[i + 1] = y_interior[i];
         }
 
         y[0] = y[1] - step * alpha;
-        y[N] = y[N - 1] + step * beta;
+        y[intervals_number] = y[intervals_number - 1] + step * beta;
     } 
     else if (boundary_conditions_type == "mixed") {
         y[0] = alpha;
 
-        for (int i = 0; i < N - 1; ++i) {
+        for (int i = 0; i < intervals_number - 1; ++i) {
             y[i + 1] = y_interior[i];
         }
 
-        y[N] = y[N - 1] + step * beta;
+        y[intervals_number] = y[intervals_number - 1] + step * beta;
     }
 
     return y;
@@ -136,7 +136,7 @@ double mixed_boundary_conditions(double x) {
 }
 
 int main() {
-    int N = 200;
+    int intervals_number = 200;
     vector<string> boundary_conditions_types = {"dirichlet", "neumann", "mixed"};
 
     vector<vector<double>> boundary_conditions_values = {
@@ -147,7 +147,7 @@ int main() {
 
     for (size_t i = 0; i < boundary_conditions_types.size(); ++i) {
         vector<double> x;
-        vector<double> y = difference_solver(N, boundary_conditions_types[i], boundary_conditions_values[i], x);
+        vector<double> y = difference_solver(intervals_number, boundary_conditions_types[i], boundary_conditions_values[i], x);
         vector<double> y_analytic(x.size());
         
         for (size_t j = 0; j < x.size(); ++j) {
