@@ -139,7 +139,7 @@ void equation_solution_plot(const vector<vector<double>>& u_values, int t_interv
     }
 
     figure.SetLegend(legend_items);
-    figure.Save("equation_solution_plot.svg");
+    figure.Save("equation_solution.svg");
 }
 
 void convergence_study_plot(double t_minimum, double t_maximum, double x_minimum, double x_maximum) {
@@ -197,7 +197,7 @@ void convergence_study_plot(double t_minimum, double t_maximum, double x_minimum
     figure.SetLegend({"Numerical error", "Theoretical error O(h^2)"});
     figure.Grid(true);
     
-    figure.Save("convergence_study_plot.svg");
+    figure.Save("convergence_study.svg");
 }
 
 int main() {
