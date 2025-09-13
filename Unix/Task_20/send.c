@@ -1,7 +1,3 @@
-//
-// Created by ddyak on 12/23/18.
-//
-
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
