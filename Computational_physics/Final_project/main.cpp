@@ -21,9 +21,9 @@ void calculate_right_part(const vector<double>& u, const vector<double>& v, vect
     dv_dt[n - 1] = 0.0;
 
     for (int i = 1; i < n - 1; ++i) {
-        double abs_A_sq = u[i] * u[i] + v[i] * v[i];
-        double nonlinear_u = gamma * u[i] - abs_A_sq * u[i] - b_1 * abs_A_sq * v[i];
-        double nonlinear_v = gamma * v[i] + b_1 * abs_A_sq * u[i] - abs_A_sq * v[i];
+        double square_modulus_A = u[i] * u[i] + v[i] * v[i];
+        double nonlinear_u = gamma * u[i] - square_modulus_A * u[i] - b_1 * square_modulus_A * v[i];
+        double nonlinear_v = gamma * v[i] + b_1 * square_modulus_A * u[i] - square_modulus_A * v[i];
 
         double second_u = (u[i - 1] - 2 * u[i] + u[i + 1]) / (x_step * x_step);
         double second_v = (v[i - 1] - 2 * v[i] + v[i + 1]) / (x_step * x_step);
@@ -48,35 +48,36 @@ void calculate_fourier_coefficients(const vector<double>& u, const vector<double
 void runge_kutta_step(vector<double>& u, vector<double>& v, double gamma, double b_1, double b_2, double x_step, double t_step) {
     int n = u.size();
     
-    vector<double> k1_u(n), k1_v(n);
-    vector<double> k2_u(n), k2_v(n);
-    vector<double> temp_u(n), temp_v(n);
+    vector<double> k_1_u(n), k_1_v(n);
+    vector<double> k_2_u(n), k_2_v(n);
+    vector<double> temporary_u(n), temporary_v(n);
     
-    calculate_right_part(u, v, k1_u, k1_v, gamma, b_1, b_2, x_step);
+    calculate_right_part(u, v, k_1_u, k_1_v, gamma, b_1, b_2, x_step);
     
     for (int i = 1; i < n - 1; ++i) {
-        temp_u[i] = u[i] + 0.5 * t_step * k1_u[i];
-        temp_v[i] = v[i] + 0.5 * t_step * k1_v[i];
+        temporary_u[i] = u[i] + 0.5 * t_step * k_1_u[i];
+        temporary_v[i] = v[i] + 0.5 * t_step * k_1_v[i];
     }
     
-    calculate_right_part(temp_u, temp_v, k2_u, k2_v, gamma, b_1, b_2, x_step);
+    calculate_right_part(temporary_u, temporary_v, k_2_u, k_2_v, gamma, b_1, b_2, x_step);
     
     for (int i = 1; i < n - 1; ++i) {
-        u[i] += t_step * k2_u[i];
-        v[i] += t_step * k2_v[i];
+        u[i] += t_step * k_2_u[i];
+        v[i] += t_step * k_2_v[i];
     }
 }
 
 void save_gnuplot_data(const vector<double>& x_data, const vector<double>& y_data, const string& filename) {
     ofstream file(filename);
+
     for (size_t i = 0; i < x_data.size(); ++i) {
         file << x_data[i] << " " << y_data[i] << endl;
     }
+
     file.close();
 }
 
-void create_gnuplot_script(const vector<string>& data_files, const vector<string>& legend_labels, 
-                          const string& output_file, double x_min, double x_max, double y_min, double y_max) {
+void create_gnuplot_script(const vector<string>& data_files, const vector<string>& legend_labels, const string& output_file, double x_min, double x_max, double y_min, double y_max) {
     ofstream script("plot_script.gp");
     
     script << "set terminal pngcairo enhanced font 'Arial,12' size 800,600" << endl;
@@ -155,7 +156,9 @@ int main() {
                 }
             }
 
-            if (!stable) break;
+            if (!stable) {
+                break;
+            }
 
             complex<double> F_1, F_2;
             calculate_fourier_coefficients(u, v, x_step, F_1, F_2);
@@ -183,7 +186,7 @@ int main() {
             data_files.push_back(data_file);
             
             stringstream legend;
-            legend << "γ = " << fixed << setprecision(1) << gamma_value;
+            legend << "gamma = " << fixed << setprecision(1) << gamma_value;
             legend_labels.push_back(legend.str());
         }
     }

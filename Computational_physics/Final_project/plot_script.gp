@@ -11,9 +11,9 @@ set format x '%.4f'
 set format y '%.4f'
 
 plot \
-    'gamma_0.0.dat' with lines title 'γ = 0.0' lw 2, \
-    'gamma_0.5.dat' with lines title 'γ = 0.5' lw 2, \
-    'gamma_1.0.dat' with lines title 'γ = 1.0' lw 2, \
-    'gamma_2.0.dat' with lines title 'γ = 2.0' lw 2, \
-    'gamma_5.0.dat' with lines title 'γ = 5.0' lw 2, \
-    'gamma_10.0.dat' with lines title 'γ = 10.0' lw 2
+    'gamma_0.0.dat' with lines title 'gamma = 0.0' lw 2, \
+    'gamma_0.5.dat' with lines title 'gamma = 0.5' lw 2, \
+    'gamma_1.0.dat' with lines title 'gamma = 1.0' lw 2, \
+    'gamma_2.0.dat' with lines title 'gamma = 2.0' lw 2, \
+    'gamma_5.0.dat' with lines title 'gamma = 5.0' lw 2, \
+    'gamma_10.0.dat' with lines title 'gamma = 10.0' lw 2
