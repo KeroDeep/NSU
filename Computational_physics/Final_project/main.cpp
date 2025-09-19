@@ -6,13 +6,11 @@
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
-
-#include "../Plot_library/graphics.hpp"
+#include <fstream>
 
 using namespace std;
-using namespace PlotLibrary;
 
-void right_part(const vector<double>& u, const vector<double>& v, vector<double>& du_dt, vector<double>& dv_dt, double gamma, double b_1, double b_2, double x_step) {
+void calculate_right_part(const vector<double>& u, const vector<double>& v, vector<double>& du_dt, vector<double>& dv_dt, double gamma, double b_1, double b_2, double x_step) {
     int n = u.size();
     du_dt.resize(n);
     dv_dt.resize(n);
@@ -35,6 +33,75 @@ void right_part(const vector<double>& u, const vector<double>& v, vector<double>
     }
 }
 
+void calculate_fourier_coefficients(const vector<double>& u, const vector<double>& v, double x_step, complex<double>& F_1, complex<double>& F_2) {
+    F_1 = 0.0;
+    F_2 = 0.0;
+    
+    for (int j = 0; j < u.size(); ++j) {
+        double x_j = j * x_step;
+        complex<double> A(u[j], v[j]);
+        F_1 += A * sin(M_PI * x_j) * x_step;
+        F_2 += A * sin(2 * M_PI * x_j) * x_step;
+    }
+}
+
+void runge_kutta_step(vector<double>& u, vector<double>& v, double gamma, double b_1, double b_2, double x_step, double t_step) {
+    int n = u.size();
+    
+    vector<double> k1_u(n), k1_v(n);
+    vector<double> k2_u(n), k2_v(n);
+    vector<double> temp_u(n), temp_v(n);
+    
+    calculate_right_part(u, v, k1_u, k1_v, gamma, b_1, b_2, x_step);
+    
+    for (int i = 1; i < n - 1; ++i) {
+        temp_u[i] = u[i] + 0.5 * t_step * k1_u[i];
+        temp_v[i] = v[i] + 0.5 * t_step * k1_v[i];
+    }
+    
+    calculate_right_part(temp_u, temp_v, k2_u, k2_v, gamma, b_1, b_2, x_step);
+    
+    for (int i = 1; i < n - 1; ++i) {
+        u[i] += t_step * k2_u[i];
+        v[i] += t_step * k2_v[i];
+    }
+}
+
+void save_gnuplot_data(const vector<double>& x_data, const vector<double>& y_data, const string& filename) {
+    ofstream file(filename);
+    for (size_t i = 0; i < x_data.size(); ++i) {
+        file << x_data[i] << " " << y_data[i] << endl;
+    }
+    file.close();
+}
+
+void create_gnuplot_script(const vector<string>& data_files, const vector<string>& legend_labels, 
+                          const string& output_file, double x_min, double x_max, double y_min, double y_max) {
+    ofstream script("plot_script.gp");
+    
+    script << "set terminal pngcairo enhanced font 'Arial,12' size 800,600" << endl;
+    script << "set output '" << output_file << ".png'" << endl;
+    script << "set title 'Phase trajectory |F_1| from |F_2| for different gamma'" << endl;
+    script << "set xlabel '|F_1|'" << endl;
+    script << "set ylabel '|F_2|'" << endl;
+    script << "set grid" << endl;
+    script << "set key outside right top" << endl;
+    script << "set xrange [" << x_min << ":" << x_max << "]" << endl;
+    script << "set yrange [" << y_min << ":" << y_max << "]" << endl;
+    script << "set format x '%.4f'" << endl;
+    script << "set format y '%.4f'" << endl;
+    script << endl;
+    script << "plot \\" << endl;
+    
+    for (size_t i = 0; i < data_files.size(); ++i) {
+        script << "    '" << data_files[i] << "' with lines title '" << legend_labels[i] << "' lw 2";
+        if (i != data_files.size() - 1) script << ", \\";
+        script << endl;
+    }
+    
+    script.close();
+}
+
 int main() {
     const double b_1 = 10.0;
     const double b_2 = 1.0;
@@ -55,33 +122,13 @@ int main() {
         v[i] = 0.0;
     }
 
-    vector<double> final_F_1_values;
-    vector<double> final_F_2_values;
-
-    vector<double> gammas = {
-        0.0,
-        0.5,
-        1.0,
-        2.0,
-        5.0,
-        10.0
-    };
-
-    vector<Color> colors = {
-        Color(255, 0, 0),
-        Color(0, 255, 0),
-        Color(0, 0, 255),
-        Color(255, 100, 100),
-        Color(0, 100, 255),
-        Color(100, 100, 100),
-    };
-
-    Figure figure(800, 600);
+    vector<double> gammas = {0.0, 0.5, 1.0, 2.0, 5.0, 10.0};
 
     double minimum_F_1 = 1e10, maximum_F_1 = -1e10;
     double minimum_F_2 = 1e10, maximum_F_2 = -1e10;
 
-    cout << endl;
+    vector<string> data_files;
+    vector<string> legend_labels;
 
     for (size_t i = 0; i < gammas.size(); ++i) {
         double gamma_value = gammas[i];
@@ -99,30 +146,19 @@ int main() {
         vector<double> F_2_history;
 
         while (t_current < t_end && stable) {
-            vector<double> du_dt, dv_dt;
-            right_part(u, v, du_dt, dv_dt, gamma_value, b_1, b_2, x_step);
-
+            runge_kutta_step(u, v, gamma_value, b_1, b_2, x_step, t_step);
+            
             for (int j = 1; j < x_steps_number; ++j) {
-                u[j] += t_step * du_dt[j];
-                v[j] += t_step * dv_dt[j];
-                
                 if (abs(u[j]) > 1e6 || abs(v[j]) > 1e6) {
                     stable = false;
                     break;
                 }
             }
 
-            if (!stable) {
-                break;
-            }
+            if (!stable) break;
 
-            complex<double> F_1 = 0.0, F_2 = 0.0;
-
-            for (int j = 0; j <= x_steps_number; ++j) {
-                double x_j = j * x_step;
-                F_1 += complex<double>(u[j], v[j]) * sin(M_PI * x_j) * x_step;
-                F_2 += complex<double>(u[j], v[j]) * sin(2 * M_PI * x_j) * x_step;
-            }
+            complex<double> F_1, F_2;
+            calculate_fourier_coefficients(u, v, x_step, F_1, F_2);
 
             double module_F_1 = abs(F_1);
             double module_F_2 = abs(F_2);
@@ -139,50 +175,28 @@ int main() {
         }
 
         if (stable && !F_1_history.empty()) {
-            final_F_1_values.push_back(F_1_history.back());
-            final_F_2_values.push_back(F_2_history.back());
-
-            PlotStyle style = figure.CreateStyle(colors[i], 1.5, LineStyle::SOLID);
-            figure.Plot(F_1_history, F_2_history, style);
-
-            cout << "Gamma = " << gamma_value << ": |F_1| range = [";
-            cout << *min_element(F_1_history.begin(), F_1_history.end()) << ", ";
-            cout << *max_element(F_1_history.begin(), F_1_history.end()) << "], ";
-            cout << "|F_2| range = [";
-            cout << *min_element(F_2_history.begin(), F_2_history.end()) << ", ";
-            cout << *max_element(F_2_history.begin(), F_2_history.end()) << "]";
-            cout << endl;
+            stringstream filename;
+            filename << "gamma_" << fixed << setprecision(1) << gamma_value << ".dat";
+            string data_file = filename.str();
+            
+            save_gnuplot_data(F_1_history, F_2_history, data_file);
+            data_files.push_back(data_file);
+            
+            stringstream legend;
+            legend << "γ = " << fixed << setprecision(1) << gamma_value;
+            legend_labels.push_back(legend.str());
         }
     }
-
-    cout << endl;
 
     double margin_F_1 = (maximum_F_1 - minimum_F_1) * 0.1;
     double margin_F_2 = (maximum_F_2 - minimum_F_2) * 0.1;
     
-    figure.SetXLimit(minimum_F_1 - margin_F_1, maximum_F_1 + margin_F_1 + 0.00015);
-    figure.SetYLimit(minimum_F_2 - margin_F_2, maximum_F_2 + margin_F_2);
-    
-    cout << "Global limits: X = [" << minimum_F_1 - margin_F_1 << ", " << maximum_F_1 + margin_F_1 << "], Y = [" << minimum_F_2 - margin_F_2 << ", " << maximum_F_2 + margin_F_2 << "]" << endl;
+    double x_min = minimum_F_1 - margin_F_1;
+    double x_max = maximum_F_1 + margin_F_1 + 0.00015;
+    double y_min = minimum_F_2 - margin_F_2;
+    double y_max = maximum_F_2 + margin_F_2;
 
-    cout << endl;
-
-    figure.SetTitle("Phase trajectory |F_1| from |F_2| for different gamma");
-    
-    vector<string> legend_labels;
-
-    for (double gamma : gammas) {
-        stringstream ss;
-        ss << fixed << setprecision(1) << gamma;
-        legend_labels.push_back("gamma = " + ss.str());
-    }
-
-    figure.SetXPrecision(7);
-    figure.SetYPrecision(7);
-
-    figure.SetLegend(legend_labels);
-    figure.Grid(true);
-    figure.Save("phase_curve.svg");
+    create_gnuplot_script(data_files, legend_labels, "phase_curve", x_min, x_max, y_min, y_max);
 
     return 0;
 }
