@@ -7,8 +7,6 @@
 
 $$ \frac{\partial A}{\partial t} = \gamma A + (i b_1 - 1) {|A|}^2 A + (1 + i b_2) \frac{\partial^2 A}{\partial x^2}, \qquad 0 < x < 1 $$
 
-## Граничные и начальные условия
-
 $$ A(0, t) = A(1, t) = 0, \qquad A(x, 0) = x^2 (1 - x), \qquad b_1 = 10, \qquad b_2 = 1 $$
 
 Вычислить зависимости от времени коэффициентов Фурье
