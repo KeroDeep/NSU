@@ -2,6 +2,7 @@ CC=gcc
 CFLAGS=-c -Wall
 SOURCES=main.c printer.c
 OBJECTS=$(SOURCES:.c=.o)
+
 all: main printer
 
 main: main.o

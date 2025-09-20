@@ -1,11 +1,12 @@
 CC=gcc
 CFLAGS=-c -Wall
-SOURCES=main.c list.c
+SOURCES=main.c
 OBJECTS=$(SOURCES:.c=.o)
+
 all: main
-main: $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
+
+main: main.o
+	$(CC) $(LDFLAGS) main.o -o $@
+
 .c.o: $(SOURCES)
 	$(CC) $(CFLAGS) $< -o $@
-clean:
-	rm -rf *.o main

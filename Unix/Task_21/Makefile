@@ -2,6 +2,7 @@ CC=gcc
 CFLAGS=-c -Wall
 SOURCES=main.c
 OBJECTS=$(SOURCES:.c=.o)
+
 all: partA partB partC module widget
 
 partA: partA.o
@@ -19,7 +20,7 @@ module: module.o
 widget: widget.o
 	$(CC) $(LDFLAGS) widget.o -o $@
 
-clean: 
+clean:
 	rm partA partA.o partB partB.o partC partC.o widget widget.o module module.o
 
 .c.o: $(SOURCES)

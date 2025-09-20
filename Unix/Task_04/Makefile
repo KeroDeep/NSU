@@ -1,7 +1,8 @@
 CC=gcc
 CFLAGS=-c -Wall
-SOURCES=main.c
+SOURCES=main.c list.c
 OBJECTS=$(SOURCES:.c=.o)
+
 all: main
 
 main: $(OBJECTS)
