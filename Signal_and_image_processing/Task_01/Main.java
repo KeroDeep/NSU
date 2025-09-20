@@ -85,8 +85,8 @@ public class Main {
                 });
             }
         }
-        catch (Exception e) {
-            System.out.println("Error: " + e.getMessage());
+        catch (Exception error) {
+            System.out.println("Error: " + error.getMessage());
         }
         finally {
             scanner.close();
@@ -116,8 +116,8 @@ public class Main {
             frame.setVisible(true);
             
         }
-        catch (Exception e) {
-            System.out.println("Error displaying image: " + e.getMessage());
+        catch (Exception error) {
+            System.out.println("Error displaying image: " + error.getMessage());
         }
     }
     
