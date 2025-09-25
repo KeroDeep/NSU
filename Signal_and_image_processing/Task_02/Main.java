@@ -62,12 +62,14 @@ public class Main {
             earsList.add(leftEarMat);
             earsList.add(rightEarMat);
             
-            Imgproc.polylines(resultImage, earsList, true, new Scalar(0, 0, 255), 3);
+            Imgproc.drawContours(resultImage, earsList, -1, new Scalar(0, 0, 255), 3, Imgproc.LINE_AA);
             
             Imgcodecs.imwrite("Output.png", resultImage);
+            System.out.println("Image processed successfully!");
         }
         catch (Exception error) {
             System.out.println("Error: " + error.getMessage());
+            error.printStackTrace();
         }
     }
 }
