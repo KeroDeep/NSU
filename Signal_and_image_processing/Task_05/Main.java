@@ -214,8 +214,7 @@ public class Main {
         
         if (globalThresholdLabel != null && globalThresholdLabel.getParent() != null) {
             JPanel globalThresholdPanel = (JPanel) globalThresholdLabel.getParent();
-            ((javax.swing.border.TitledBorder) globalThresholdPanel.getBorder())
-                .setTitle("Global threshold (T = " + globalThreshold + ")");
+            ((javax.swing.border.TitledBorder) globalThresholdPanel.getBorder()).setTitle("Global threshold (T = " + globalThreshold + ")");
             globalThresholdPanel.repaint();
         }
         
