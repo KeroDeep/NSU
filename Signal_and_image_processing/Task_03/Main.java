@@ -103,7 +103,7 @@ public class Main {
             applyCorrections();
         });
         
-        JButton resetButton = new JButton("Reset parameters");
+        JButton resetButton = new JButton("Reset");
         resetButton.addActionListener(event -> {
             brightnessSlider.setValue(0);
             contrastSlider.setValue(100);
@@ -112,7 +112,7 @@ public class Main {
             applyCorrections();
         });
         
-        JButton saveButton = new JButton("Save result");
+        JButton saveButton = new JButton("Save");
         saveButton.addActionListener(event -> {
             saveCorrectedImage();
         });

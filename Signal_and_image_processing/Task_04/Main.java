@@ -3,30 +3,42 @@ import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ComponentEvent;
+import java.awt.event.ComponentListener;
 import java.awt.image.BufferedImage;
 import java.util.Scanner;
 
-public class Main {
-    private static Mat originalImage;
-    private static Mat equalizedImage;
-    private static Mat correctedImage;
-    private static JLabel originalLabel;
-    private static JLabel equalizedLabel;
-    private static JLabel correctedLabel;
-    private static JLabel originalHistLabel;
-    private static JLabel equalizedHistLabel;
-    private static JLabel correctedHistLabel;
+public class Main implements ComponentListener {
+    private Mat originalImage;
+    private Mat equalizedImage;
+    private Mat correctedImage;
+    private JLabel originalLabel;
+    private JLabel equalizedLabel;
+    private JLabel correctedLabel;
+    private JLabel originalHistLabel;
+    private JLabel originalCumulativeHistLabel;
+    private JLabel equalizedHistLabel;
+    private JLabel equalizedCumulativeHistLabel;
+    private JLabel correctedHistLabel;
+    private JLabel correctedCumulativeHistLabel;
     
-    private static double alpha = 1.0;
-    private static double beta = 0.0;
-    private static double gamma = 1.0;
+    private double alpha = 1.0;
+    private double beta = 0.0;
+    private double gamma = 1.0;
 
-    private static String originalImagePath;
-    private static int saveCounter = 1;
+    private String originalImagePath;
+    private int saveCounter = 1;
+    
+    private JSlider contrastSlider;
+    private JSlider brightnessSlider;
+    private JSlider gammaSlider;
     
     public static void main(String[] args) {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-        
+        new Main();
+    }
+    
+    public Main() {
         Scanner scanner = new Scanner(System.in);
         
         try {
@@ -43,7 +55,8 @@ public class Main {
             Mat grayImage = new Mat();
             if (originalImage.channels() == 3) {
                 Imgproc.cvtColor(originalImage, grayImage, Imgproc.COLOR_BGR2GRAY);
-            } else {
+            }
+            else {
                 grayImage = originalImage;
             }
             
@@ -62,59 +75,72 @@ public class Main {
         }
     }
     
-    private static void createGUI() {
+    private void createGUI() {
         JFrame frame = new JFrame("Histogram and equalization");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLayout(new BorderLayout());
         
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int minWidth = (int)(screenSize.width * 0.3);
+        int minHeight = (int)(screenSize.height * 0.3);
+        frame.setMinimumSize(new Dimension(minWidth, minHeight));
+        
         frame.setSize(1400, 900);
         
-        JPanel imagePanel = new JPanel(new GridLayout(3, 2, 10, 10));
-        imagePanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        JPanel imagePanel = new JPanel(new GridLayout(3, 3, 5, 5));
+        imagePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         
         originalLabel = new JLabel();
         originalLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        updateImageLabel(originalLabel, originalImage, true);
         
         originalHistLabel = new JLabel();
         originalHistLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        updateHistogramLabel(originalHistLabel, originalImage, "Original histogram");
+        
+        originalCumulativeHistLabel = new JLabel();
+        originalCumulativeHistLabel.setHorizontalAlignment(SwingConstants.CENTER);
         
         equalizedLabel = new JLabel();
         equalizedLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        updateImageLabel(equalizedLabel, equalizedImage, false);
         
         equalizedHistLabel = new JLabel();
         equalizedHistLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        updateHistogramLabel(equalizedHistLabel, equalizedImage, "Equalized histogram");
+        
+        equalizedCumulativeHistLabel = new JLabel();
+        equalizedCumulativeHistLabel.setHorizontalAlignment(SwingConstants.CENTER);
         
         correctedLabel = new JLabel();
         correctedLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        updateImageLabel(correctedLabel, correctedImage, false);
         
         correctedHistLabel = new JLabel();
         correctedHistLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        updateHistogramLabel(correctedHistLabel, correctedImage, "Corrected histogram");
+        
+        correctedCumulativeHistLabel = new JLabel();
+        correctedCumulativeHistLabel.setHorizontalAlignment(SwingConstants.CENTER);
         
         imagePanel.add(createPanelWithTitle(originalLabel, "Original image"));
         imagePanel.add(createPanelWithTitle(originalHistLabel, "Original histogram"));
-        imagePanel.add(createPanelWithTitle(equalizedLabel, "After equalization"));
+        imagePanel.add(createPanelWithTitle(originalCumulativeHistLabel, "Original cumulative histogram"));
+        imagePanel.add(createPanelWithTitle(equalizedLabel, "Equalized image"));
         imagePanel.add(createPanelWithTitle(equalizedHistLabel, "Equalized histogram"));
-        imagePanel.add(createPanelWithTitle(correctedLabel, "After correction"));
+        imagePanel.add(createPanelWithTitle(equalizedCumulativeHistLabel, "Equalized cumulative histogram"));
+        imagePanel.add(createPanelWithTitle(correctedLabel, "Corrected image"));
         imagePanel.add(createPanelWithTitle(correctedHistLabel, "Corrected histogram"));
+        imagePanel.add(createPanelWithTitle(correctedCumulativeHistLabel, "Corrected cumulative histogram"));
+        
+        updateAllDisplays();
         
         JPanel controlPanel = new JPanel(new GridLayout(3, 2, 10, 5));
         controlPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
-        JSlider contrastSlider = new JSlider(0, 2000, 100);
+        contrastSlider = new JSlider(0, 2000, 100);
         JLabel contrastValue = new JLabel("1.00");
         setupSlider(contrastSlider, contrastValue, "Contrast (alpha):", controlPanel);
         
-        JSlider brightnessSlider = new JSlider(-255, 255, 0);
+        brightnessSlider = new JSlider(-255, 255, 0);
         JLabel brightnessValue = new JLabel("0");
         setupSlider(brightnessSlider, brightnessValue, "Brightness (beta):", controlPanel);
         
-        JSlider gammaSlider = new JSlider(0, 2000, 100);
+        gammaSlider = new JSlider(0, 2000, 100);
         JLabel gammaValue = new JLabel("1.00");
         setupSlider(gammaSlider, gammaValue, "Gamma:", controlPanel);
         
@@ -137,18 +163,10 @@ public class Main {
         });
         
         JButton resetButton = new JButton("Reset");
-        resetButton.addActionListener(event -> {
-            brightnessSlider.setValue(0);
-            contrastSlider.setValue(100);
-            gammaSlider.setValue(100);
-            saveCounter = 1;
-            applyCorrections();
-        });
+        resetButton.addActionListener(event -> resetParameters());
         
         JButton saveButton = new JButton("Save");
-        saveButton.addActionListener(event -> {
-            saveCorrectedImage();
-        });
+        saveButton.addActionListener(event -> saveCorrectedImage());
         
         JPanel buttonPanel = new JPanel();
         buttonPanel.add(resetButton);
@@ -158,18 +176,32 @@ public class Main {
         frame.add(controlPanel, BorderLayout.SOUTH);
         frame.add(buttonPanel, BorderLayout.NORTH);
         
+        frame.addComponentListener(this);
+        
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
     }
     
-    private static JPanel createPanelWithTitle(JComponent component, String title) {
+    private void resetParameters() {
+        alpha = 1.0;
+        beta = 0.0;
+        gamma = 1.0;
+        
+        contrastSlider.setValue(100);
+        brightnessSlider.setValue(0);
+        gammaSlider.setValue(100);
+        
+        applyCorrections();
+    }
+    
+    private JPanel createPanelWithTitle(JComponent component, String title) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createTitledBorder(title));
         panel.add(component, BorderLayout.CENTER);
         return panel;
     }
     
-    private static void setupSlider(JSlider slider, JLabel valueLabel, String title, JPanel panel) {
+    private void setupSlider(JSlider slider, JLabel valueLabel, String title, JPanel panel) {
         JPanel sliderPanel = new JPanel(new BorderLayout());
         sliderPanel.add(new JLabel(title), BorderLayout.WEST);
         sliderPanel.add(slider, BorderLayout.CENTER);
@@ -182,8 +214,55 @@ public class Main {
         panel.add(valuePanel);
     }
     
-    private static void applyCorrections() {
-        if (equalizedImage.empty()) return;
+    private void updateAllDisplays() {
+        updateImageLabel(originalLabel, originalImage, true);
+        updateHistogramLabels(originalHistLabel, originalCumulativeHistLabel, originalImage, Color.BLUE);
+        updateImageLabel(equalizedLabel, equalizedImage, false);
+        updateHistogramLabels(equalizedHistLabel, equalizedCumulativeHistLabel, equalizedImage, Color.RED);
+        updateImageLabel(correctedLabel, correctedImage, false);
+        updateHistogramLabels(correctedHistLabel, correctedCumulativeHistLabel, correctedImage, Color.GREEN);
+    }
+    
+    private void updateHistogramLabels(JLabel histLabel, JLabel cumulativeHistLabel, Mat image, Color color) {
+        if (image.empty()) {
+            return;
+        }
+        
+        Mat histogram = computeHistogram(image);
+        Mat cumulativeHistogram = computeCumulativeHistogram(histogram);
+        
+        Dimension panelSize = ((JPanel)histLabel.getParent().getParent()).getSize();
+        
+        int availableWidth = (panelSize.width - 20) / 4;
+        int availableHeight = (panelSize.height - 40) / 4;
+        
+        double histRatio = 1.5;
+        
+        int width, height;
+        
+        if (histRatio > 1.0) {
+            width = availableWidth;
+            height = (int)(availableWidth / histRatio);
+        }
+        else {
+            height = availableHeight;
+            width = (int)(availableHeight * histRatio);
+        }
+        
+        width = Math.max(120, Math.min(width, availableWidth));
+        height = Math.max(80, Math.min(height, availableHeight));
+        
+        BufferedImage histImage = drawHistogram(histogram, width, height, color, false);
+        BufferedImage cumulativeHistImage = drawHistogram(cumulativeHistogram, width, height, color, true);
+        
+        histLabel.setIcon(new ImageIcon(histImage));
+        cumulativeHistLabel.setIcon(new ImageIcon(cumulativeHistImage));
+    }
+    
+    private void applyCorrections() {
+        if (equalizedImage.empty()) {
+            return;
+        }
         
         Mat tempImage = new Mat();
         equalizedImage.copyTo(tempImage);
@@ -196,16 +275,16 @@ public class Main {
         
         correctedImage = clampPixelValues(tempImage);
         updateImageLabel(correctedLabel, correctedImage, false);
-        updateHistogramLabel(correctedHistLabel, correctedImage, "Corrected histogram");
+        updateHistogramLabels(correctedHistLabel, correctedCumulativeHistLabel, correctedImage, Color.GREEN);
     }
     
-    private static Mat clampPixelValues(Mat image) {
+    private Mat clampPixelValues(Mat image) {
         Mat result = new Mat();
         image.convertTo(result, CvType.CV_8U);
         return result;
     }
     
-    private static void applyGammaCorrection(Mat src, Mat dst, double gamma) {
+    private void applyGammaCorrection(Mat src, Mat dst, double gamma) {
         if (gamma == 1.0) {
             src.copyTo(dst);
             return;
@@ -226,8 +305,10 @@ public class Main {
         Core.LUT(src, lut, dst);
     }
     
-    private static void updateImageLabel(JLabel label, Mat image, boolean convertBGRtoRGB) {
-        if (image.empty()) return;
+    private void updateImageLabel(JLabel label, Mat image, boolean convertBGRtoRGB) {
+        if (image.empty()) {
+            return;
+        }
         
         Mat displayImage = new Mat();
         
@@ -240,26 +321,32 @@ public class Main {
         
         BufferedImage bufferedImage = matToBufferedImage(displayImage);
         
-        int displayWidth = 300;
-        int displayHeight = 250;
+        Dimension panelSize = ((JPanel)label.getParent().getParent()).getSize();
+        int availableWidth = (panelSize.width - 20) / 4;
+        int availableHeight = (panelSize.height - 40) / 4;
+        
+        double imageRatio = (double)image.cols() / image.rows();
+        double panelRatio = (double)availableWidth / availableHeight;
+        
+        int displayWidth, displayHeight;
+        
+        if (imageRatio > panelRatio) {
+            displayWidth = availableWidth;
+            displayHeight = (int)(availableWidth / imageRatio);
+        }
+        else {
+            displayHeight = availableHeight;
+            displayWidth = (int)(availableHeight * imageRatio);
+        }
+        
+        displayWidth = Math.max(100, Math.min(displayWidth, availableWidth));
+        displayHeight = Math.max(100, Math.min(displayHeight, availableHeight));
         
         Image scaledImage = bufferedImage.getScaledInstance(displayWidth, displayHeight, Image.SCALE_SMOOTH);
         label.setIcon(new ImageIcon(scaledImage));
     }
     
-    private static void updateHistogramLabel(JLabel label, Mat image, String title) {
-        if (image.empty()) return;
-        
-        Mat histogram = computeHistogram(image);
-        BufferedImage histImage = drawHistogram(histogram, 300, 200);
-        
-        label.setIcon(new ImageIcon(histImage));
-        label.setText(title);
-        label.setVerticalTextPosition(SwingConstants.TOP);
-        label.setHorizontalTextPosition(SwingConstants.CENTER);
-    }
-    
-    private static Mat computeHistogram(Mat image) {
+    private Mat computeHistogram(Mat image) {
         Mat hist = new Mat();
         MatOfFloat ranges = new MatOfFloat(0, 256);
         MatOfInt histSize = new MatOfInt(256);
@@ -267,7 +354,8 @@ public class Main {
         Mat grayImage = new Mat();
         if (image.channels() == 3) {
             Imgproc.cvtColor(image, grayImage, Imgproc.COLOR_BGR2GRAY);
-        } else {
+        }
+        else {
             grayImage = image;
         }
         
@@ -283,7 +371,19 @@ public class Main {
         return hist;
     }
     
-    private static BufferedImage drawHistogram(Mat histogram, int width, int height) {
+    private Mat computeCumulativeHistogram(Mat histogram) {
+        Mat cumulative = new Mat(histogram.size(), histogram.type());
+        double sum = 0;
+        
+        for (int i = 0; i < histogram.rows(); i++) {
+            sum += histogram.get(i, 0)[0];
+            cumulative.put(i, 0, sum);
+        }
+        
+        return cumulative;
+    }
+    
+    private BufferedImage drawHistogram(Mat histogram, int width, int height, Color color, boolean isCumulative) {
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = image.createGraphics();
         
@@ -293,29 +393,43 @@ public class Main {
         Core.MinMaxLocResult result = Core.minMaxLoc(histogram);
         double maxVal = result.maxVal;
         
+        int padding = 2;
         g2d.setColor(Color.BLACK);
-        g2d.drawLine(30, height - 30, width - 10, height - 30);
-        g2d.drawLine(30, height - 30, 30, 10);
+        g2d.drawLine(padding, height - padding, width - padding, height - padding);
+        g2d.drawLine(padding, height - padding, padding, padding);
         
-        g2d.setColor(Color.BLUE);
-        int binWidth = (width - 40) / 256;
+        g2d.setColor(color);
         
-        for (int i = 0; i < 256; i++) {
+        int availableWidth = width - padding * 2;
+        int totalBins = 256;
+        
+        float binWidth = (float)availableWidth / totalBins;
+        
+        for (int i = 0; i < totalBins; i++) {
             double value = histogram.get(i, 0)[0];
-            int intensity = (int)((value / maxVal) * (height - 40));
+            int intensity = (int)((value / maxVal) * (height - padding * 2));
             
-            g2d.fillRect(30 + i * binWidth, height - 30 - intensity, 
-                        Math.max(1, binWidth - 1), intensity);
+            int x = padding + (int)(i * binWidth);
+            int binRenderWidth = (int)Math.ceil(binWidth);
+            
+            if (isCumulative) {
+                if (i > 0) {
+                    double prevValue = histogram.get(i - 1, 0)[0];
+                    int prevIntensity = (int)((prevValue / maxVal) * (height - padding * 2));
+                    int prevX = padding + (int)((i - 1) * binWidth);
+                    g2d.drawLine(prevX, height - padding - prevIntensity, x, height - padding - intensity);
+                }
+            }
+            else {
+                g2d.fillRect(x, height - padding - intensity, binRenderWidth, intensity);
+            }
         }
-        
-        g2d.drawString("Brightness", width / 2 - 20, height - 5);
-        g2d.drawString("Pixel count", 5, height / 2);
         
         g2d.dispose();
         return image;
     }
     
-    private static BufferedImage matToBufferedImage(Mat mat) {
+    private BufferedImage matToBufferedImage(Mat mat) {
         if (mat.empty()) {
             return new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
         }
@@ -345,7 +459,7 @@ public class Main {
         return image;
     }
     
-    private static void saveCorrectedImage() {
+    private void saveCorrectedImage() {
         if (originalImagePath == null || originalImagePath.isEmpty() || correctedImage.empty()) {
             JOptionPane.showMessageDialog(null, "No image loaded", "Error", JOptionPane.ERROR_MESSAGE);
             return;
@@ -388,4 +502,18 @@ public class Main {
             JOptionPane.showMessageDialog(null, "Error saving image", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
+
+    @Override
+    public void componentResized(ComponentEvent event) {
+        updateAllDisplays();
+    }
+
+    @Override
+    public void componentMoved(ComponentEvent event) {}
+
+    @Override
+    public void componentShown(ComponentEvent event) {}
+
+    @Override
+    public void componentHidden(ComponentEvent event) {}
 }
