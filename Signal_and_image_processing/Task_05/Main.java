@@ -16,7 +16,7 @@ public class Main {
     private JLabel globalThresholdLabel;
     private JLabel adaptiveThresholdLabel;
     
-    private int globalThreshold = 128;
+    private int globalThreshold = 75;
     private int blockSize = 15;
     private int constant = 5;
     
@@ -157,7 +157,7 @@ public class Main {
     }
     
     private void resetParameters() {
-        globalThreshold = 128;
+        globalThreshold = 75;
         blockSize = 15;
         constant = 5;
         
