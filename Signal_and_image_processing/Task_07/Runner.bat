@@ -1,5 +1,5 @@
 @echo off
-javac Main.java
+javac -encoding UTF-8 ..\File_manager\FileManager.java Main.java
 
 if errorlevel 1 (
     echo Compilation failed!
@@ -7,5 +7,5 @@ if errorlevel 1 (
     exit /b 1
 )
 
-java --enable-native-access=ALL-UNNAMED Main 2>nul
+java -cp ".;..\File_manager" Main
 exit /b 0
