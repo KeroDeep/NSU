@@ -241,13 +241,8 @@ public class Main {
     }
 
     private static void openFileManager() {
-        if (currentFileManager != null) {
-            JOptionPane.showMessageDialog(mainFrame, "File manager is already open!", "Warning", JOptionPane.WARNING_MESSAGE);
-
-            return;
-        }
-
         currentFileManager = new FileManager();
+        
         currentFileManager.setOnImagesSelected(paths -> {
             currentFileManager.close();
             currentFileManager = null;
@@ -255,7 +250,7 @@ public class Main {
             if (paths.length > 0) {
                 loadImages(paths);
             }
-
+            
             refreshDisplay();
         });
         currentFileManager.showFileManager();
