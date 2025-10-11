@@ -395,7 +395,7 @@ public class FileManager extends AbstractTableModel implements MouseListener, Fo
         rows.clear();
 
         if (currentDir.getParentFile() != null) {
-            rows.add(new Object[]{"..", "", "Folder", ""});
+            rows.add(new Object[]{"..", "", "", ""});
         }
 
         File[] files = currentDir.listFiles();
@@ -416,7 +416,7 @@ public class FileManager extends AbstractTableModel implements MouseListener, Fo
             for (File file : files) {
                 String name = file.getName();
                 String size = file.isDirectory() ? "" : formatFileSize(file.length());
-                String type = file.isDirectory() ? "Folder" : getFileExtension(file.getName());
+                String type = file.isDirectory() ? "folder" : getFileExtension(file.getName());
                 String modified = file.isDirectory() && name.equals("..") ? "" : dateFormat.format(new Date(file.lastModified()));
 
                 rows.add(new Object[]{name, size, type, modified});
