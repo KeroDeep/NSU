@@ -87,17 +87,50 @@ public class Main {
         medianSizeSlider.setPaintTicks(true);
         medianSizeSlider.setPaintLabels(true);
         
-        JSlider noiseStdSlider = new JSlider(0, 100, (int)noiseStd);
-        noiseStdSlider.setMajorTickSpacing(20);
-        noiseStdSlider.setMinorTickSpacing(5);
+        JSlider noiseStdSlider = new JSlider(0, 255, (int)noiseStd);
+        noiseStdSlider.setMajorTickSpacing(50);
+        noiseStdSlider.setMinorTickSpacing(10);
         noiseStdSlider.setPaintTicks(true);
         noiseStdSlider.setPaintLabels(true);
         
-        JSlider noiseRangeSlider = new JSlider(0, 100, noiseRange);
-        noiseRangeSlider.setMajorTickSpacing(20);
-        noiseRangeSlider.setMinorTickSpacing(5);
+        JSlider noiseRangeSlider = new JSlider(0, 255, noiseRange);
+        noiseRangeSlider.setMajorTickSpacing(50);
+        noiseRangeSlider.setMinorTickSpacing(10);
         noiseRangeSlider.setPaintTicks(true);
         noiseRangeSlider.setPaintLabels(true);
+        
+        JPanel gaussianSizeLabelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        gaussianSizeLabelPanel.setPreferredSize(new Dimension(150, 25));
+        gaussianSizeLabelPanel.add(new JLabel("Gauss size:"));
+        
+        JPanel gaussianSigmaLabelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        gaussianSigmaLabelPanel.setPreferredSize(new Dimension(150, 25));
+        gaussianSigmaLabelPanel.add(new JLabel("Gauss sigma:"));
+        
+        JPanel medianSizeLabelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        medianSizeLabelPanel.setPreferredSize(new Dimension(150, 25));
+        medianSizeLabelPanel.add(new JLabel("Median size:"));
+        
+        JPanel noiseLevelLabelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        noiseLevelLabelPanel.setPreferredSize(new Dimension(150, 25));
+        JLabel noiseLevelLabel = new JLabel("Noise level (Gaussian):");
+        noiseLevelLabelPanel.add(noiseLevelLabel);
+        
+        JPanel gaussianSizePanel = new JPanel(new BorderLayout());
+        gaussianSizePanel.add(gaussianSizeLabelPanel, BorderLayout.WEST);
+        gaussianSizePanel.add(gaussianSizeSlider, BorderLayout.CENTER);
+        
+        JPanel gaussianSigmaPanel = new JPanel(new BorderLayout());
+        gaussianSigmaPanel.add(gaussianSigmaLabelPanel, BorderLayout.WEST);
+        gaussianSigmaPanel.add(gaussianSigmaSlider, BorderLayout.CENTER);
+        
+        JPanel medianSizePanel = new JPanel(new BorderLayout());
+        medianSizePanel.add(medianSizeLabelPanel, BorderLayout.WEST);
+        medianSizePanel.add(medianSizeSlider, BorderLayout.CENTER);
+        
+        JPanel noiseLevelPanel = new JPanel(new BorderLayout());
+        noiseLevelPanel.add(noiseLevelLabelPanel, BorderLayout.WEST);
+        noiseLevelPanel.add(noiseStdSlider, BorderLayout.CENTER);
         
         gaussianSizeSlider.addChangeListener(event -> {
             gaussianKernelSize = gaussianSizeSlider.getValue();
@@ -146,9 +179,23 @@ public class Main {
         });
 
         clearBtn.addActionListener(event -> clearAll());
+        
         noiseTypeBtn.addActionListener(event -> {
             useGaussianNoise = !useGaussianNoise;
             noiseTypeBtn.setText("Noise: " + (useGaussianNoise ? "Gaussian" : "Uniform"));
+            noiseLevelLabel.setText("Noise level (" + (useGaussianNoise ? "Gaussian" : "Uniform") + "):");
+            
+            noiseLevelPanel.remove(noiseLevelPanel.getComponent(1));
+
+            if (useGaussianNoise) {
+                noiseLevelPanel.add(noiseStdSlider, BorderLayout.CENTER);
+            }
+            else {
+                noiseLevelPanel.add(noiseRangeSlider, BorderLayout.CENTER);
+            }
+            
+            noiseLevelPanel.revalidate();
+            noiseLevelPanel.repaint();
             refreshDisplay();
         });
         
@@ -167,35 +214,17 @@ public class Main {
         gbc.gridx = 4;
         panel.add(noiseTypeBtn, gbc);
         
-        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 2;
-        panel.add(new JLabel("Gauss size:"), gbc);
+        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 5;
+        panel.add(gaussianSizePanel, gbc);
         
-        gbc.gridx = 2; gbc.gridwidth = 3;
-        panel.add(gaussianSizeSlider, gbc);
+        gbc.gridy = 2;
+        panel.add(gaussianSigmaPanel, gbc);
         
-        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 2;
-        panel.add(new JLabel("Gauss sigma:"), gbc);
+        gbc.gridy = 3;
+        panel.add(medianSizePanel, gbc);
         
-        gbc.gridx = 2; gbc.gridwidth = 3;
-        panel.add(gaussianSigmaSlider, gbc);
-        
-        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2;
-        panel.add(new JLabel("Median size:"), gbc);
-        
-        gbc.gridx = 2; gbc.gridwidth = 3;
-        panel.add(medianSizeSlider, gbc);
-        
-        gbc.gridx = 0; gbc.gridy = 4; gbc.gridwidth = 2;
-        panel.add(new JLabel("Noise level:"), gbc);
-        
-        gbc.gridx = 2; gbc.gridwidth = 3;
-
-        if (useGaussianNoise) {
-            panel.add(noiseStdSlider, gbc);
-        }
-        else {
-            panel.add(noiseRangeSlider, gbc);
-        }
+        gbc.gridy = 4;
+        panel.add(noiseLevelPanel, gbc);
         
         return panel;
     }
@@ -272,9 +301,7 @@ public class Main {
             addImageToPanel(rowPanel, originalColorImages.get(i), "Color original");
             addImageToPanel(rowPanel, originalGrayImages.get(i), "Gray original");
             
-            BufferedImage noisy = useGaussianNoise ? 
-                addGaussianNoise(originalGrayImages.get(i), noiseStd) :
-                addUniformNoise(originalGrayImages.get(i), noiseRange);
+            BufferedImage noisy = useGaussianNoise ? addGaussianNoise(originalGrayImages.get(i), noiseStd) : addUniformNoise(originalGrayImages.get(i), noiseRange);
             addImageToPanel(rowPanel, noisy, "Noisy image");
             
             BufferedImage gaussian = applyGaussianFilter(noisy, gaussianKernelSize, gaussianSigma);
@@ -555,10 +582,12 @@ public class Main {
         BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
         java.util.Random rand = new java.util.Random();
         
+        double normalizedStd = std / 5.0;
+        
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 int pixel = image.getRGB(x, y) & 0xFF;
-                double noise = rand.nextGaussian() * std;
+                double noise = rand.nextGaussian() * normalizedStd;
                 int newPixel = (int) Math.max(0, Math.min(255, pixel + noise));
                 int rgb = (newPixel << 16) | (newPixel << 8) | newPixel;
                 result.setRGB(x, y, rgb);
@@ -567,17 +596,19 @@ public class Main {
         
         return result;
     }
-    
+
     private static BufferedImage addUniformNoise(BufferedImage image, int range) {
         int width = image.getWidth();
         int height = image.getHeight();
         BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
         java.util.Random rand = new java.util.Random();
         
+        int normalizedRange = range / 2;
+        
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 int pixel = image.getRGB(x, y) & 0xFF;
-                int noise = rand.nextInt(2 * range + 1) - range;
+                int noise = rand.nextInt(2 * normalizedRange + 1) - normalizedRange;
                 int newPixel = Math.max(0, Math.min(255, pixel + noise));
                 int rgb = (newPixel << 16) | (newPixel << 8) | newPixel;
                 result.setRGB(x, y, rgb);
