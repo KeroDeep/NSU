@@ -241,6 +241,10 @@ public class Main {
     }
 
     private static void openFileManager() {
+        if (currentFileManager != null) {
+            currentFileManager.close();
+        }
+        
         currentFileManager = new FileManager();
         
         currentFileManager.setOnImagesSelected(paths -> {
@@ -255,7 +259,7 @@ public class Main {
         });
         currentFileManager.showFileManager();
     }
-
+    
     private static void loadImages(String[] paths) {
         for (String path : paths) {
             try {

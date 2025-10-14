@@ -230,12 +230,20 @@ public class Main {
     }
     
     private static void openFileManager() {
+        if (currentFileManager != null) {
+            currentFileManager.close();
+        }
+        
         currentFileManager = new FileManager();
         
         currentFileManager.setOnImagesSelected(paths -> {
             currentFileManager.close();
             currentFileManager = null;
-            loadImages(paths);
+
+            if (paths.length > 0) {
+                loadImages(paths);
+            }
+            
             refreshDisplay();
         });
         currentFileManager.showFileManager();
