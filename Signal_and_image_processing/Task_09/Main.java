@@ -5,8 +5,21 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import javax.imageio.ImageIO;
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
+import org.opencv.core.Point;
+import org.opencv.core.Scalar;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 
 public class Main {
+    static {
+        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+    }
+    
     private static JFrame mainFrame;
     private static JPanel imagePanel;
     private static List<BufferedImage> originalColorImages = new ArrayList<>();
@@ -16,29 +29,31 @@ public class Main {
     
     private static boolean linesMode = true;
     
-    private static int accumulatorThresholdLines = 50;
-    private static int minLineLength = 20;
+    private static int rho = 1;
+    private static int theta = 180;
+    private static int thresholdLines = 100;
+    private static int minLineLength = 50;
     private static int maxLineGap = 10;
-    private static int angleStep = 2;
-    private static int distanceStep = 1;
     
-    private static int accumulatorThresholdCircles = 20;
-    private static int minRadius = 5;
+    private static int accumulatorResolution = 1;
+    private static int minCenterDistance = 50;
+    private static int cannyThreshold = 100;
+    private static int accumulatorThreshold = 50;
+    private static int minRadius = 10;
     private static int maxRadius = 100;
-    private static double minAspectRatio = 0.3;
-    private static double maxAspectRatio = 3.0;
 
-    private static JSlider accumulatorThresholdLinesSlider;
+    private static JSlider rhoSlider;
+    private static JSlider thetaSlider;
+    private static JSlider thresholdLinesSlider;
     private static JSlider minLineLengthSlider;
     private static JSlider maxLineGapSlider;
-    private static JSlider angleStepSlider;
-    private static JSlider distanceStepSlider;
     
-    private static JSlider accumulatorThresholdCirclesSlider;
+    private static JSlider accumulatorResolutionSlider;
+    private static JSlider minCenterDistanceSlider;
+    private static JSlider cannyThresholdSlider;
+    private static JSlider accumulatorThresholdSlider;
     private static JSlider minRadiusSlider;
     private static JSlider maxRadiusSlider;
-    private static JSlider minAspectRatioSlider;
-    private static JSlider maxAspectRatioSlider;
     
     private static JButton detectionModeButton;
     private static JButton openBtn;
@@ -84,68 +99,84 @@ public class Main {
         JButton resetBtn = new JButton("Reset parameters");
         detectionModeButton = new JButton("Detection: Lines");
 
-        accumulatorThresholdLinesSlider = new JSlider(10, 300, accumulatorThresholdLines);
-        accumulatorThresholdLinesSlider.setMajorTickSpacing(50);
-        accumulatorThresholdLinesSlider.setMinorTickSpacing(10);
-        accumulatorThresholdLinesSlider.setPaintTicks(true);
-        accumulatorThresholdLinesSlider.setPaintLabels(true);
+        rhoSlider = new JSlider(1, 10, rho);
+        rhoSlider.setMajorTickSpacing(2);
+        rhoSlider.setMinorTickSpacing(1);
+        rhoSlider.setPaintTicks(true);
+        rhoSlider.setPaintLabels(true);
 
-        minLineLengthSlider = new JSlider(5, 300, minLineLength);
+        thetaSlider = new JSlider(1, 360, theta);
+        thetaSlider.setMajorTickSpacing(90);
+        thetaSlider.setMinorTickSpacing(30);
+        thetaSlider.setPaintTicks(true);
+        thetaSlider.setPaintLabels(true);
+
+        thresholdLinesSlider = new JSlider(0, 255, thresholdLines);
+        thresholdLinesSlider.setMajorTickSpacing(50);
+        thresholdLinesSlider.setMinorTickSpacing(10);
+        thresholdLinesSlider.setPaintTicks(true);
+        thresholdLinesSlider.setPaintLabels(true);
+
+        minLineLengthSlider = new JSlider(0, 200, minLineLength);
         minLineLengthSlider.setMajorTickSpacing(50);
         minLineLengthSlider.setMinorTickSpacing(10);
         minLineLengthSlider.setPaintTicks(true);
         minLineLengthSlider.setPaintLabels(true);
 
-        maxLineGapSlider = new JSlider(1, 50, maxLineGap);
+        maxLineGapSlider = new JSlider(0, 50, maxLineGap);
         maxLineGapSlider.setMajorTickSpacing(10);
         maxLineGapSlider.setMinorTickSpacing(5);
         maxLineGapSlider.setPaintTicks(true);
         maxLineGapSlider.setPaintLabels(true);
 
-        angleStepSlider = new JSlider(1, 10, angleStep);
-        angleStepSlider.setMajorTickSpacing(2);
-        angleStepSlider.setMinorTickSpacing(1);
-        angleStepSlider.setPaintTicks(true);
-        angleStepSlider.setPaintLabels(true);
+        accumulatorResolutionSlider = new JSlider(1, 5, accumulatorResolution);
+        accumulatorResolutionSlider.setMajorTickSpacing(1);
+        accumulatorResolutionSlider.setMinorTickSpacing(1);
+        accumulatorResolutionSlider.setPaintTicks(true);
+        accumulatorResolutionSlider.setPaintLabels(true);
 
-        distanceStepSlider = new JSlider(1, 10, distanceStep);
-        distanceStepSlider.setMajorTickSpacing(2);
-        distanceStepSlider.setMinorTickSpacing(1);
-        distanceStepSlider.setPaintTicks(true);
-        distanceStepSlider.setPaintLabels(true);
+        minCenterDistanceSlider = new JSlider(0, 100, minCenterDistance);
+        minCenterDistanceSlider.setMajorTickSpacing(20);
+        minCenterDistanceSlider.setMinorTickSpacing(5);
+        minCenterDistanceSlider.setPaintTicks(true);
+        minCenterDistanceSlider.setPaintLabels(true);
 
-        accumulatorThresholdCirclesSlider = new JSlider(5, 100, accumulatorThresholdCircles);
-        accumulatorThresholdCirclesSlider.setMajorTickSpacing(20);
-        accumulatorThresholdCirclesSlider.setMinorTickSpacing(5);
-        accumulatorThresholdCirclesSlider.setPaintTicks(true);
-        accumulatorThresholdCirclesSlider.setPaintLabels(true);
+        cannyThresholdSlider = new JSlider(0, 255, cannyThreshold);
+        cannyThresholdSlider.setMajorTickSpacing(50);
+        cannyThresholdSlider.setMinorTickSpacing(10);
+        cannyThresholdSlider.setPaintTicks(true);
+        cannyThresholdSlider.setPaintLabels(true);
 
-        minRadiusSlider = new JSlider(3, 200, minRadius);
+        accumulatorThresholdSlider = new JSlider(0, 255, accumulatorThreshold);
+        accumulatorThresholdSlider.setMajorTickSpacing(50);
+        accumulatorThresholdSlider.setMinorTickSpacing(10);
+        accumulatorThresholdSlider.setPaintTicks(true);
+        accumulatorThresholdSlider.setPaintLabels(true);
+
+        minRadiusSlider = new JSlider(0, 200, minRadius);
         minRadiusSlider.setMajorTickSpacing(50);
         minRadiusSlider.setMinorTickSpacing(10);
         minRadiusSlider.setPaintTicks(true);
         minRadiusSlider.setPaintLabels(true);
 
-        maxRadiusSlider = new JSlider(20, 500, maxRadius);
+        maxRadiusSlider = new JSlider(0, 500, maxRadius);
         maxRadiusSlider.setMajorTickSpacing(100);
         maxRadiusSlider.setMinorTickSpacing(20);
         maxRadiusSlider.setPaintTicks(true);
         maxRadiusSlider.setPaintLabels(true);
 
-        minAspectRatioSlider = new JSlider(10, 100, (int)(minAspectRatio * 100));
-        minAspectRatioSlider.setMajorTickSpacing(20);
-        minAspectRatioSlider.setMinorTickSpacing(5);
-        minAspectRatioSlider.setPaintTicks(true);
-        minAspectRatioSlider.setPaintLabels(true);
+        rhoSlider.addChangeListener(event -> {
+            rho = rhoSlider.getValue();
+            refreshDisplay();
+        });
 
-        maxAspectRatioSlider = new JSlider(100, 300, (int)(maxAspectRatio * 100));
-        maxAspectRatioSlider.setMajorTickSpacing(50);
-        maxAspectRatioSlider.setMinorTickSpacing(10);
-        maxAspectRatioSlider.setPaintTicks(true);
-        maxAspectRatioSlider.setPaintLabels(true);
+        thetaSlider.addChangeListener(event -> {
+            theta = thetaSlider.getValue();
+            refreshDisplay();
+        });
 
-        accumulatorThresholdLinesSlider.addChangeListener(event -> {
-            accumulatorThresholdLines = accumulatorThresholdLinesSlider.getValue();
+        thresholdLinesSlider.addChangeListener(event -> {
+            thresholdLines = thresholdLinesSlider.getValue();
             refreshDisplay();
         });
 
@@ -159,18 +190,23 @@ public class Main {
             refreshDisplay();
         });
 
-        angleStepSlider.addChangeListener(event -> {
-            angleStep = angleStepSlider.getValue();
+        accumulatorResolutionSlider.addChangeListener(event -> {
+            accumulatorResolution = accumulatorResolutionSlider.getValue();
             refreshDisplay();
         });
 
-        distanceStepSlider.addChangeListener(event -> {
-            distanceStep = distanceStepSlider.getValue();
+        minCenterDistanceSlider.addChangeListener(event -> {
+            minCenterDistance = minCenterDistanceSlider.getValue();
             refreshDisplay();
         });
 
-        accumulatorThresholdCirclesSlider.addChangeListener(event -> {
-            accumulatorThresholdCircles = accumulatorThresholdCirclesSlider.getValue();
+        cannyThresholdSlider.addChangeListener(event -> {
+            cannyThreshold = cannyThresholdSlider.getValue();
+            refreshDisplay();
+        });
+
+        accumulatorThresholdSlider.addChangeListener(event -> {
+            accumulatorThreshold = accumulatorThresholdSlider.getValue();
             refreshDisplay();
         });
 
@@ -189,30 +225,8 @@ public class Main {
             maxRadius = maxRadiusSlider.getValue();
 
             if (maxRadius <= minRadius) {
-                minRadius = Math.max(3, maxRadius - 10);
+                minRadius = Math.max(0, maxRadius - 10);
                 minRadiusSlider.setValue(minRadius);
-            }
-
-            refreshDisplay();
-        });
-
-        minAspectRatioSlider.addChangeListener(event -> {
-            minAspectRatio = minAspectRatioSlider.getValue() / 100.0;
-
-            if (minAspectRatio >= maxAspectRatio) {
-                maxAspectRatio = Math.min(3.0, minAspectRatio + 0.1);
-                maxAspectRatioSlider.setValue((int)(maxAspectRatio * 100));
-            }
-
-            refreshDisplay();
-        });
-
-        maxAspectRatioSlider.addChangeListener(event -> {
-            maxAspectRatio = maxAspectRatioSlider.getValue() / 100.0;
-
-            if (maxAspectRatio <= minAspectRatio) {
-                minAspectRatio = Math.max(0.1, maxAspectRatio - 0.1);
-                minAspectRatioSlider.setValue((int)(minAspectRatio * 100));
             }
 
             refreshDisplay();
@@ -223,86 +237,10 @@ public class Main {
         resetBtn.addActionListener(event -> resetParameters());
         detectionModeButton.addActionListener(event -> toggleDetectionMode());
 
-        JPanel accThreshLinesLabelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        accThreshLinesLabelPanel.setPreferredSize(new Dimension(180, 25));
-        accThreshLinesLabelPanel.add(new JLabel("Accumulator threshold:"));
+        JPanel[] linePanels = createLabeledPanels("Lines", new String[]{"Distance resolution:", "Angle resolution:", "Line detection threshold:", "Minimum line length:", "Maximum line gap:"}, new JSlider[]{rhoSlider, thetaSlider, thresholdLinesSlider, minLineLengthSlider, maxLineGapSlider});
 
-        JPanel minLineLengthLabelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        minLineLengthLabelPanel.setPreferredSize(new Dimension(180, 25));
-        minLineLengthLabelPanel.add(new JLabel("Min line length:"));
-
-        JPanel maxLineGapLabelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        maxLineGapLabelPanel.setPreferredSize(new Dimension(180, 25));
-        maxLineGapLabelPanel.add(new JLabel("Max line gap:"));
-
-        JPanel angleStepLabelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        angleStepLabelPanel.setPreferredSize(new Dimension(180, 25));
-        angleStepLabelPanel.add(new JLabel("Angle step:"));
-
-        JPanel distanceStepLabelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        distanceStepLabelPanel.setPreferredSize(new Dimension(180, 25));
-        distanceStepLabelPanel.add(new JLabel("Distance step:"));
-
-        JPanel accThreshCirclesLabelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        accThreshCirclesLabelPanel.setPreferredSize(new Dimension(180, 25));
-        accThreshCirclesLabelPanel.add(new JLabel("Accumulator threshold:"));
-
-        JPanel minRadiusLabelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        minRadiusLabelPanel.setPreferredSize(new Dimension(180, 25));
-        minRadiusLabelPanel.add(new JLabel("Min radius:"));
-
-        JPanel maxRadiusLabelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        maxRadiusLabelPanel.setPreferredSize(new Dimension(180, 25));
-        maxRadiusLabelPanel.add(new JLabel("Max radius:"));
-
-        JPanel minAspectRatioLabelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        minAspectRatioLabelPanel.setPreferredSize(new Dimension(180, 25));
-        minAspectRatioLabelPanel.add(new JLabel("Min aspect ratio:"));
-
-        JPanel maxAspectRatioLabelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        maxAspectRatioLabelPanel.setPreferredSize(new Dimension(180, 25));
-        maxAspectRatioLabelPanel.add(new JLabel("Max aspect ratio:"));
-
-        JPanel accThreshLinesPanel = new JPanel(new BorderLayout());
-        accThreshLinesPanel.add(accThreshLinesLabelPanel, BorderLayout.WEST);
-        accThreshLinesPanel.add(accumulatorThresholdLinesSlider, BorderLayout.CENTER);
-
-        JPanel minLineLengthPanel = new JPanel(new BorderLayout());
-        minLineLengthPanel.add(minLineLengthLabelPanel, BorderLayout.WEST);
-        minLineLengthPanel.add(minLineLengthSlider, BorderLayout.CENTER);
-
-        JPanel maxLineGapPanel = new JPanel(new BorderLayout());
-        maxLineGapPanel.add(maxLineGapLabelPanel, BorderLayout.WEST);
-        maxLineGapPanel.add(maxLineGapSlider, BorderLayout.CENTER);
-
-        JPanel angleStepPanel = new JPanel(new BorderLayout());
-        angleStepPanel.add(angleStepLabelPanel, BorderLayout.WEST);
-        angleStepPanel.add(angleStepSlider, BorderLayout.CENTER);
-
-        JPanel distanceStepPanel = new JPanel(new BorderLayout());
-        distanceStepPanel.add(distanceStepLabelPanel, BorderLayout.WEST);
-        distanceStepPanel.add(distanceStepSlider, BorderLayout.CENTER);
-
-        JPanel accThreshCirclesPanel = new JPanel(new BorderLayout());
-        accThreshCirclesPanel.add(accThreshCirclesLabelPanel, BorderLayout.WEST);
-        accThreshCirclesPanel.add(accumulatorThresholdCirclesSlider, BorderLayout.CENTER);
-
-        JPanel minRadiusPanel = new JPanel(new BorderLayout());
-        minRadiusPanel.add(minRadiusLabelPanel, BorderLayout.WEST);
-        minRadiusPanel.add(minRadiusSlider, BorderLayout.CENTER);
-
-        JPanel maxRadiusPanel = new JPanel(new BorderLayout());
-        maxRadiusPanel.add(maxRadiusLabelPanel, BorderLayout.WEST);
-        maxRadiusPanel.add(maxRadiusSlider, BorderLayout.CENTER);
-
-        JPanel minAspectRatioPanel = new JPanel(new BorderLayout());
-        minAspectRatioPanel.add(minAspectRatioLabelPanel, BorderLayout.WEST);
-        minAspectRatioPanel.add(minAspectRatioSlider, BorderLayout.CENTER);
-
-        JPanel maxAspectRatioPanel = new JPanel(new BorderLayout());
-        maxAspectRatioPanel.add(maxAspectRatioLabelPanel, BorderLayout.WEST);
-        maxAspectRatioPanel.add(maxAspectRatioSlider, BorderLayout.CENTER);
-
+        JPanel[] circlePanels = createLabeledPanels("Circles", new String[]{"Accumulator resolution:", "Minimum center distance:", "Canny edge threshold:", "Accumulator threshold:", "Minimum circle radius:", "Maximum circle radius:"}, new JSlider[]{accumulatorResolutionSlider, minCenterDistanceSlider, cannyThresholdSlider, accumulatorThresholdSlider, minRadiusSlider, maxRadiusSlider});
+        
         gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 1;
         panel.add(openBtn, gbc);
         
@@ -315,43 +253,35 @@ public class Main {
         gbc.gridx = 3;
         panel.add(detectionModeButton, gbc);
 
-        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 5;
-        panel.add(accThreshLinesPanel, gbc);
-        
-        gbc.gridy = 2;
-        panel.add(minLineLengthPanel, gbc);
-        
-        gbc.gridy = 3;
-        panel.add(maxLineGapPanel, gbc);
-        
-        gbc.gridy = 4;
-        panel.add(angleStepPanel, gbc);
-        
-        gbc.gridy = 5;
-        panel.add(distanceStepPanel, gbc);
-        
-        gbc.gridy = 6;
-        panel.add(accThreshCirclesPanel, gbc);
-        
-        gbc.gridy = 7;
-        panel.add(minRadiusPanel, gbc);
-        
-        gbc.gridy = 8;
-        panel.add(maxRadiusPanel, gbc);
-        
-        gbc.gridy = 9;
-        panel.add(minAspectRatioPanel, gbc);
-        
-        gbc.gridy = 10;
-        panel.add(maxAspectRatioPanel, gbc);
+        for (int i = 0; i < linePanels.length; i++) {
+            gbc.gridx = 0; gbc.gridy = i + 1; gbc.gridwidth = 4;
+            panel.add(linePanels[i], gbc);
+        }
 
-        accThreshCirclesPanel.setVisible(false);
-        minRadiusPanel.setVisible(false);
-        maxRadiusPanel.setVisible(false);
-        minAspectRatioPanel.setVisible(false);
-        maxAspectRatioPanel.setVisible(false);
+        for (int i = 0; i < circlePanels.length; i++) {
+            gbc.gridx = 0; gbc.gridy = i + linePanels.length + 1; gbc.gridwidth = 4;
+            panel.add(circlePanels[i], gbc);
+            circlePanels[i].setVisible(false);
+        }
         
         return panel;
+    }
+
+    private static JPanel[] createLabeledPanels(String type, String[] labels, JSlider[] sliders) {
+        JPanel[] panels = new JPanel[labels.length];
+
+        for (int i = 0; i < labels.length; i++) {
+            JPanel labelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            labelPanel.setPreferredSize(new Dimension(180, 25));
+            labelPanel.add(new JLabel(labels[i]));
+
+            JPanel sliderPanel = new JPanel(new BorderLayout());
+            sliderPanel.add(labelPanel, BorderLayout.WEST);
+            sliderPanel.add(sliders[i], BorderLayout.CENTER);
+            panels[i] = sliderPanel;
+        }
+
+        return panels;
     }
 
     private static void toggleDetectionMode() {
@@ -359,59 +289,61 @@ public class Main {
 
         if (linesMode) {
             detectionModeButton.setText("Detection: Lines");
-            setPanelVisibility(true);
         }
         else {
-            detectionModeButton.setText("Detection: Ellipses");
-            setPanelVisibility(false);
+            detectionModeButton.setText("Detection: Circles");
         }
 
+        setPanelVisibility();
         mainFrame.revalidate();
         refreshDisplay();
     }
 
-    private static void setPanelVisibility(boolean linesMode) {
+    private static void setPanelVisibility() {
         Component[] components = ((JPanel)mainFrame.getContentPane().getComponent(0)).getComponents();
         
-        accumulatorThresholdLinesSlider.getParent().setVisible(linesMode);
+        rhoSlider.getParent().setVisible(linesMode);
+        thetaSlider.getParent().setVisible(linesMode);
+        thresholdLinesSlider.getParent().setVisible(linesMode);
         minLineLengthSlider.getParent().setVisible(linesMode);
         maxLineGapSlider.getParent().setVisible(linesMode);
-        angleStepSlider.getParent().setVisible(linesMode);
-        distanceStepSlider.getParent().setVisible(linesMode);
         
-        accumulatorThresholdCirclesSlider.getParent().setVisible(!linesMode);
+        accumulatorResolutionSlider.getParent().setVisible(!linesMode);
+        minCenterDistanceSlider.getParent().setVisible(!linesMode);
+        cannyThresholdSlider.getParent().setVisible(!linesMode);
+        accumulatorThresholdSlider.getParent().setVisible(!linesMode);
         minRadiusSlider.getParent().setVisible(!linesMode);
         maxRadiusSlider.getParent().setVisible(!linesMode);
-        minAspectRatioSlider.getParent().setVisible(!linesMode);
-        maxAspectRatioSlider.getParent().setVisible(!linesMode);
     }
 
     private static void resetParameters() {
         if (linesMode) {
-            accumulatorThresholdLines = 50;
-            minLineLength = 20;
+            rho = 1;
+            theta = 180;
+            thresholdLines = 100;
+            minLineLength = 50;
             maxLineGap = 10;
-            angleStep = 2;
-            distanceStep = 1;
             
-            accumulatorThresholdLinesSlider.setValue(accumulatorThresholdLines);
+            rhoSlider.setValue(rho);
+            thetaSlider.setValue(theta);
+            thresholdLinesSlider.setValue(thresholdLines);
             minLineLengthSlider.setValue(minLineLength);
             maxLineGapSlider.setValue(maxLineGap);
-            angleStepSlider.setValue(angleStep);
-            distanceStepSlider.setValue(distanceStep);
         }
         else {
-            accumulatorThresholdCircles = 20;
-            minRadius = 5;
+            accumulatorResolution = 1;
+            minCenterDistance = 50;
+            cannyThreshold = 100;
+            accumulatorThreshold = 50;
+            minRadius = 10;
             maxRadius = 100;
-            minAspectRatio = 0.3;
-            maxAspectRatio = 3.0;
             
-            accumulatorThresholdCirclesSlider.setValue(accumulatorThresholdCircles);
+            accumulatorResolutionSlider.setValue(accumulatorResolution);
+            minCenterDistanceSlider.setValue(minCenterDistance);
+            cannyThresholdSlider.setValue(cannyThreshold);
+            accumulatorThresholdSlider.setValue(accumulatorThreshold);
             minRadiusSlider.setValue(minRadius);
             maxRadiusSlider.setValue(maxRadius);
-            minAspectRatioSlider.setValue((int)(minAspectRatio * 100));
-            maxAspectRatioSlider.setValue((int)(maxAspectRatio * 100));
         }
         
         refreshDisplay();
@@ -492,7 +424,7 @@ public class Main {
         imagePanel.removeAll();
 
         if (originalColorImages.isEmpty()) {
-            addLabel("No images loaded. Click «Open file manager» to load images.");
+            addLabel("<html>No images loaded. Click &laquo;Open file manager&raquo; to load images.</html>");
         }
         else {
             displayResults();
@@ -513,12 +445,12 @@ public class Main {
             BufferedImage grayOriginal = originalGrayImages.get(i);
             
             BufferedImage edges = createEdgeImage(grayOriginal);
-            BufferedImage detectionResult = createDetectionResult(colorOriginal, grayOriginal, edges);
+            BufferedImage detectionResult = createDetectionResult(colorOriginal, grayOriginal);
             
-            addImageToPanel(rowPanel, colorOriginal, "Color original");
-            addImageToPanel(rowPanel, grayOriginal, "Gray original");
+            addImageToPanel(rowPanel, colorOriginal, "Original");
+            addImageToPanel(rowPanel, grayOriginal, "Grayscale");
             addImageToPanel(rowPanel, edges, "Edge detection");
-            addImageToPanel(rowPanel, detectionResult, linesMode ? "Detected lines" : "Detected ellipses");
+            addImageToPanel(rowPanel, detectionResult, linesMode ? "Hough lines" : "Hough circles");
             
             imagePanel.add(rowPanel);
             imagePanel.add(Box.createRigidArea(new Dimension(0, 10)));
@@ -526,228 +458,120 @@ public class Main {
     }
 
     private static BufferedImage createEdgeImage(BufferedImage gray) {
-        int width = gray.getWidth();
-        int height = gray.getHeight();
-        BufferedImage edges = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
+        Mat grayMat = bufferedImageToGrayMat(gray);
+        Mat blurred = new Mat();
+        Imgproc.medianBlur(grayMat, blurred, 5);
         
-        int edgeThreshold = calculateAutoEdgeThreshold(gray);
+        Mat edges = new Mat();
+        Imgproc.Canny(blurred, edges, 50, 150, 3, false);
         
-        for (int y = 1; y < height - 1; y++) {
-            for (int x = 1; x < width - 1; x++) {
-                int gx = ((gray.getRGB(x-1, y-1) & 0xFF) + 2*(gray.getRGB(x-1, y) & 0xFF) + (gray.getRGB(x-1, y+1) & 0xFF)) - ((gray.getRGB(x+1, y-1) & 0xFF) + 2*(gray.getRGB(x+1, y) & 0xFF) + (gray.getRGB(x+1, y+1) & 0xFF));
-                
-                int gy = ((gray.getRGB(x-1, y-1) & 0xFF) + 2*(gray.getRGB(x, y-1) & 0xFF) + (gray.getRGB(x+1, y-1) & 0xFF)) - ((gray.getRGB(x-1, y+1) & 0xFF) + 2*(gray.getRGB(x, y+1) & 0xFF) + (gray.getRGB(x+1, y+1) & 0xFF));
-                
-                int magnitude = (int) Math.sqrt(gx * gx + gy * gy);
-                magnitude = Math.min(255, magnitude);
-                
-                if (magnitude > edgeThreshold) {
-                    edges.setRGB(x, y, 0xFFFFFF);
-                }
-                else {
-                    edges.setRGB(x, y, 0);
-                }
-            }
-        }
-
-        return edges;
+        BufferedImage result = matToBufferedImage(edges);
+        grayMat.release();
+        blurred.release();
+        edges.release();
+        
+        return result;
     }
 
-    private static int calculateAutoEdgeThreshold(BufferedImage gray) {
-        int width = gray.getWidth();
-        int height = gray.getHeight();
-        long total = 0;
-        int count = 0;
-        
-        for (int y = 1; y < height - 1; y += 2) {
-            for (int x = 1; x < width - 1; x += 2) {
-                int gx = ((gray.getRGB(x-1, y-1) & 0xFF) + 2*(gray.getRGB(x-1, y) & 0xFF) + (gray.getRGB(x-1, y+1) & 0xFF)) - ((gray.getRGB(x+1, y-1) & 0xFF) + 2*(gray.getRGB(x+1, y) & 0xFF) + (gray.getRGB(x+1, y+1) & 0xFF));
-                
-                int gy = ((gray.getRGB(x-1, y-1) & 0xFF) + 2*(gray.getRGB(x, y-1) & 0xFF) + (gray.getRGB(x+1, y-1) & 0xFF)) - ((gray.getRGB(x-1, y+1) & 0xFF) + 2*(gray.getRGB(x, y+1) & 0xFF) + (gray.getRGB(x+1, y+1) & 0xFF));
-                
-                int magnitude = (int) Math.sqrt(gx * gx + gy * gy);
-                total += magnitude;
-                count++;
-            }
-        }
-        
-        if (count == 0) {
-            return 50;
-        }
-
-        int average = (int)(total / count);
-
-        return Math.max(30, Math.min(100, average / 2));
-    }
-
-    private static BufferedImage createDetectionResult(BufferedImage original, BufferedImage gray, BufferedImage edges) {
-        BufferedImage result = copyImage(original);
+    private static BufferedImage createDetectionResult(BufferedImage original, BufferedImage gray) {
+        Mat colorMat = bufferedImageToMat(original);
+        Mat grayMat = bufferedImageToGrayMat(gray);
+        Mat blurred = new Mat();
+        Imgproc.GaussianBlur(grayMat, blurred, new org.opencv.core.Size(9, 9), 2, 2);
         
         if (linesMode) {
-            return createLineDetectionImage(result, edges);
+            Mat edges = new Mat();
+            Imgproc.Canny(blurred, edges, 50, 150, 3, false);
+            
+            Mat lines = new Mat();
+            Imgproc.HoughLinesP(edges, lines, rho, Math.PI / theta, thresholdLines, minLineLength, maxLineGap);
+            
+            for (int i = 0; i < lines.rows(); i++) {
+                double[] line = lines.get(i, 0);
+                Imgproc.line(colorMat, new Point(line[0], line[1]), new Point(line[2], line[3]), new Scalar(0, 0, 255), 2);
+            }
+
+            lines.release();
+            edges.release();
         }
         else {
-            return createEllipseDetectionImage(result, gray, edges);
-        }
-    }
-
-    private static BufferedImage createLineDetectionImage(BufferedImage result, BufferedImage edges) {
-        int width = edges.getWidth();
-        int height = edges.getHeight();
-        
-        Graphics2D g2d = result.createGraphics();
-        g2d.setColor(Color.RED);
-        g2d.setStroke(new BasicStroke(2));
-        
-        List<int[]> lines = new ArrayList<>();
-        
-        for (int y = 0; y < height - minLineLength; y++) {
-            for (int x = 0; x < width; x++) {
-                if ((edges.getRGB(x, y) & 0xFF) > 128) {
-                    for (int angle = 0; angle < 180; angle += angleStep) {
-                        double theta = Math.toRadians(angle);
-                        int length = 0;
-                        int endX = x, endY = y;
-                        
-                        while (length < minLineLength && endX >= 0 && endX < width && endY >= 0 && endY < height) {
-                            endX = (int) (x + length * Math.cos(theta));
-                            endY = (int) (y + length * Math.sin(theta));
-                            
-                            if (endX >= 0 && endX < width && endY >= 0 && endY < height) {
-                                if ((edges.getRGB(endX, endY) & 0xFF) > 128) {
-                                    length++;
-                                }
-                                else {
-                                    break;
-                                }
-                            }
-                            else {
-                                break;
-                            }
-                        }
-                        
-                        if (length >= minLineLength) {
-                            int finalEndX = (int) (x + length * Math.cos(theta));
-                            int finalEndY = (int) (y + length * Math.sin(theta));
-                            lines.add(new int[]{x, y, finalEndX, finalEndY, length});
-                        }
-                    }
-                }
-            }
-        }
-        
-        for (int[] line : lines) {
-            g2d.drawLine(line[0], line[1], line[2], line[3]);
-        }
-        
-        g2d.dispose();
-
-        return result;
-    }
-
-    private static BufferedImage createEllipseDetectionImage(BufferedImage result, BufferedImage gray, BufferedImage edges) {
-        int width = gray.getWidth();
-        int height = gray.getHeight();
-        
-        Graphics2D g2d = result.createGraphics();
-        g2d.setColor(Color.BLUE);
-        g2d.setStroke(new BasicStroke(2));
-        
-        int autoMinDistance = minRadius * 2;
-        List<Object[]> ellipses = new ArrayList<>();
-        
-        List<int[]> edgePoints = new ArrayList<>();
-        
-        for (int y = minRadius; y < height - minRadius; y += 2) {
-            for (int x = minRadius; x < width - minRadius; x += 2) {
-                if ((edges.getRGB(x, y) & 0xFF) > 200) {
-                    edgePoints.add(new int[]{x, y});
-                }
-            }
-        }
-        
-        int maxPoints = Math.min(1000, edgePoints.size());
-        for (int i = 0; i < maxPoints; i++) {
-            int[] point = edgePoints.get(i);
-            int x = point[0];
-            int y = point[1];
+            Mat circles = new Mat();
+            int rows = blurred.rows();
+            int minDistValue = Math.max(minCenterDistance, rows / 4);
             
-            int radiusStep = Math.max(2, (maxRadius - minRadius) / 8);
-
-            for (int r = minRadius; r <= maxRadius; r += radiusStep) {
-                double aspectStep = Math.max(0.1, (maxAspectRatio - minAspectRatio) / 4);
-
-                for (double aspect = minAspectRatio; aspect <= maxAspectRatio; aspect += aspectStep) {
-                    
-                    int rx = r;
-                    int ry = (int) (r * aspect);
-                    
-                    if (rx < 1 || ry < 1) {
-                        continue;
-                    }
-                    
-                    int votes = 0;
-                    int totalPoints = 0;
-                    
-                    for (int angle = 0; angle < 360; angle += 20) {
-                        double theta = Math.toRadians(angle);
-                        int a = (int) (x + rx * Math.cos(theta));
-                        int b = (int) (y + ry * Math.sin(theta));
-                        
-                        if (a >= 0 && a < width && b >= 0 && b < height) {
-                            totalPoints++;
-
-                            if ((edges.getRGB(a, b) & 0xFF) > 150) {
-                                votes++;
-                            }
-                        }
-                    }
-                    
-                    double confidence = (double) votes / totalPoints;
-                    if (totalPoints >= 12 && confidence > (accumulatorThresholdCircles + 10) / 100.0) {
-                        boolean valid = true;
-
-                        for (Object[] existing : ellipses) {
-                            int ex = (int) existing[0];
-                            int ey = (int) existing[1];
-                            double distance = Math.sqrt(Math.pow(x - ex, 2) + Math.pow(y - ey, 2));
-
-                            if (distance < autoMinDistance) {
-                                valid = false;
-                                break;
-                            }
-                        }
-                        
-                        if (valid) {
-                            ellipses.add(new Object[]{x, y, rx, ry, confidence});
-                        }
-                    }
-                }
+            Imgproc.HoughCircles(blurred, circles, Imgproc.HOUGH_GRADIENT, accumulatorResolution, minDistValue, cannyThreshold, accumulatorThreshold, minRadius, maxRadius);
+            
+            for (int i = 0; i < circles.cols(); i++) {
+                double[] circle = circles.get(0, i);
+                Point center = new Point(Math.round(circle[0]), Math.round(circle[1]));
+                int radius = (int) Math.round(circle[2]);
+                Imgproc.circle(colorMat, center, 3, new Scalar(0, 0, 255), -1);
+                Imgproc.circle(colorMat, center, radius, new Scalar(0, 255, 0), 3);
             }
+
+            circles.release();
         }
         
-        for (Object[] ellipse : ellipses) {
-            if ((double) ellipse[4] > 0.5) {
-                int x = (int) ellipse[0];
-                int y = (int) ellipse[1];
-                int rx = (int) ellipse[2];
-                int ry = (int) ellipse[3];
-                g2d.drawOval(x - rx, y - ry, rx * 2, ry * 2);
-            }
-        }
+        BufferedImage result = matToBufferedImage(colorMat);
         
-        g2d.dispose();
-
+        colorMat.release();
+        grayMat.release();
+        blurred.release();
+        
         return result;
     }
 
-    private static BufferedImage copyImage(BufferedImage original) {
-        BufferedImage copy = new BufferedImage(original.getWidth(), original.getHeight(), original.getType());
-        Graphics g = copy.getGraphics();
-        g.drawImage(original, 0, 0, null);
-        g.dispose();
+    private static Mat bufferedImageToMat(BufferedImage image) {
+        try {
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            ImageIO.write(image, "jpg", byteArrayOutputStream);
+            byteArrayOutputStream.flush();
+            byte[] imageInByte = byteArrayOutputStream.toByteArray();
+            byteArrayOutputStream.close();
 
-        return copy;
+            return Imgcodecs.imdecode(new MatOfByte(imageInByte), Imgcodecs.IMREAD_COLOR);
+        }
+        catch (Exception exception) {
+            exception.printStackTrace();
+
+            return null;
+        }
+    }
+
+    private static Mat bufferedImageToGrayMat(BufferedImage image) {
+        try {
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            ImageIO.write(image, "jpg", byteArrayOutputStream);
+            byteArrayOutputStream.flush();
+            byte[] imageInByte = byteArrayOutputStream.toByteArray();
+            byteArrayOutputStream.close();
+
+            return Imgcodecs.imdecode(new MatOfByte(imageInByte), Imgcodecs.IMREAD_GRAYSCALE);
+        }
+        catch (Exception exception) {
+            exception.printStackTrace();
+
+            return null;
+        }
+    }
+    
+    private static BufferedImage matToBufferedImage(Mat mat) {
+        try {
+            MatOfByte mob = new MatOfByte();
+            Imgcodecs.imencode(".jpg", mat, mob);
+            byte[] byteArray = mob.toArray();
+            mob.release();
+            ByteArrayInputStream bis = new ByteArrayInputStream(byteArray);
+            BufferedImage image = ImageIO.read(bis);
+            bis.close();
+
+            return image;
+        }
+        catch (Exception exception) {
+            exception.printStackTrace();
+
+            return null;
+        }
     }
 
     private static void addImageToPanel(JPanel parent, BufferedImage image, String title) {
