@@ -3,7 +3,6 @@ javac FileManager.java
 
 if errorlevel 1 (
     echo Compilation failed!
-    pause
     exit /b 1
 )
 

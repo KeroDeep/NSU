@@ -5,8 +5,23 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import javax.imageio.ImageIO;
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfByte;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.Scalar;
+import org.opencv.core.Size;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 
 public class Main {
+    static {
+        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+    }
+    
     private static JFrame mainFrame;
     private static JPanel imagePanel;
     private static List<BufferedImage> originalColorImages = new ArrayList<>();
@@ -16,17 +31,19 @@ public class Main {
     private static int cannyThreshold1 = 50;
     private static int cannyThreshold2 = 150;
     private static int cannyApertureSize = 3;
-    private static boolean useL1Gradient = true;
-    private static int contourMode = 0;
-    private static int contourMethod = 1;
+    private static boolean useL2Gradient = false;
+    private static boolean applyBlur = true;
+    private static int blurSize = 3;
+    private static double blurSigma = 1.0;
 
     private static JSlider threshold1Slider;
     private static JSlider threshold2Slider;
     private static JRadioButton l1Button;
     private static JRadioButton l2Button;
     private static JComboBox<String> apertureComboBox;
-    private static JComboBox<String> contourModeComboBox;
-    private static JComboBox<String> contourMethodComboBox;
+    private static JCheckBox blurCheckBox;
+    private static JSlider blurSizeSlider;
+    private static JSlider blurSigmaSlider;
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
@@ -68,8 +85,9 @@ public class Main {
         JButton openBtn = new JButton("Open file manager");
         JButton clearBtn = new JButton("Clear all");
         JButton resetBtn = new JButton("Reset parameters");
-        l1Button = new JRadioButton("L1 gradient", useL1Gradient);
-        l2Button = new JRadioButton("L2 gradient", !useL1Gradient);
+        l1Button = new JRadioButton("L1 gradient", !useL2Gradient);
+        l2Button = new JRadioButton("L2 gradient", useL2Gradient);
+        blurCheckBox = new JCheckBox("Apply blur", applyBlur);
         
         ButtonGroup gradientGroup = new ButtonGroup();
         gradientGroup.add(l1Button);
@@ -87,14 +105,22 @@ public class Main {
         threshold2Slider.setPaintTicks(true);
         threshold2Slider.setPaintLabels(true);
 
-        apertureComboBox = new JComboBox<>(new String[]{"3x3", "5x5", "7x7", "9x9"});
+        apertureComboBox = new JComboBox<>(new String[]{"3x3", "5x5", "7x7"});
         apertureComboBox.setSelectedIndex(0);
 
-        contourModeComboBox = new JComboBox<>(new String[]{"External contours", "All contours", "Two-level", "Full hierarchy"});
-        contourModeComboBox.setSelectedIndex(0);
+        blurSizeSlider = new JSlider(1, 15, blurSize);
+        blurSizeSlider.setMajorTickSpacing(2);
+        blurSizeSlider.setMinorTickSpacing(1);
+        blurSizeSlider.setPaintTicks(true);
+        blurSizeSlider.setPaintLabels(true);
+        blurSizeSlider.setEnabled(applyBlur);
 
-        contourMethodComboBox = new JComboBox<>(new String[]{"Store all points", "Compress lines"});
-        contourMethodComboBox.setSelectedIndex(0);
+        blurSigmaSlider = new JSlider(0, 100, (int)(blurSigma * 10));
+        blurSigmaSlider.setMajorTickSpacing(20);
+        blurSigmaSlider.setMinorTickSpacing(5);
+        blurSigmaSlider.setPaintTicks(true);
+        blurSigmaSlider.setPaintLabels(true);
+        blurSigmaSlider.setEnabled(applyBlur);
 
         threshold1Slider.addChangeListener(event -> {
             cannyThreshold1 = threshold1Slider.getValue();
@@ -125,22 +151,34 @@ public class Main {
         });
 
         l1Button.addActionListener(event -> {
-            useL1Gradient = true;
+            useL2Gradient = false;
             refreshDisplay();
         });
 
         l2Button.addActionListener(event -> {
-            useL1Gradient = false;
+            useL2Gradient = true;
             refreshDisplay();
         });
 
-        contourModeComboBox.addActionListener(event -> {
-            contourMode = contourModeComboBox.getSelectedIndex();
+        blurCheckBox.addActionListener(event -> {
+            applyBlur = blurCheckBox.isSelected();
+            blurSizeSlider.setEnabled(applyBlur);
+            blurSigmaSlider.setEnabled(applyBlur);
             refreshDisplay();
         });
 
-        contourMethodComboBox.addActionListener(event -> {
-            contourMethod = contourMethodComboBox.getSelectedIndex() + 1;
+        blurSizeSlider.addChangeListener(event -> {
+            blurSize = blurSizeSlider.getValue();
+            
+            if (blurSize % 2 == 0) {
+                blurSize++;
+            }
+
+            refreshDisplay();
+        });
+
+        blurSigmaSlider.addChangeListener(event -> {
+            blurSigma = blurSigmaSlider.getValue() / 10.0;
             refreshDisplay();
         });
 
@@ -151,6 +189,7 @@ public class Main {
         buttonPanel.add(openBtn);
         buttonPanel.add(clearBtn);
         buttonPanel.add(resetBtn);
+        buttonPanel.add(blurCheckBox);
 
         JPanel controlPanel = new JPanel(new GridBagLayout());
         controlPanel.setBackground(mainPanel.getBackground());
@@ -158,61 +197,44 @@ public class Main {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(2, 5, 2, 5);
 
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.gridwidth = 1;
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridwidth = 1;
         controlPanel.add(new JLabel("Lower threshold:"), gbc);
         
-        gbc.gridx = 1;
-        gbc.gridwidth = 4;
+        gbc.gridx = 1; gbc.gridwidth = 4;
         controlPanel.add(threshold1Slider, gbc);
 
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.gridwidth = 1;
+        gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 1;
         controlPanel.add(new JLabel("Upper threshold:"), gbc);
         
-        gbc.gridx = 1;
-        gbc.gridwidth = 4;
+        gbc.gridx = 1; gbc.gridwidth = 4;
         controlPanel.add(threshold2Slider, gbc);
 
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.gridwidth = 1;
+        gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 1;
         controlPanel.add(new JLabel("Gradient:"), gbc);
         
-        gbc.gridx = 1;
-        gbc.gridwidth = 1;
+        gbc.gridx = 1; gbc.gridwidth = 1;
         controlPanel.add(l1Button, gbc);
         
-        gbc.gridx = 2;
-        gbc.gridwidth = 1;
+        gbc.gridx = 2; gbc.gridwidth = 1;
         controlPanel.add(l2Button, gbc);
         
-        gbc.gridx = 3;
-        gbc.gridwidth = 1;
+        gbc.gridx = 3; gbc.gridwidth = 1;
         controlPanel.add(new JLabel("Aperture:"), gbc);
         
-        gbc.gridx = 4;
-        gbc.gridwidth = 1;
+        gbc.gridx = 4; gbc.gridwidth = 1;
         controlPanel.add(apertureComboBox, gbc);
 
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        gbc.gridwidth = 1;
-        controlPanel.add(new JLabel("Contour mode:"), gbc);
+        gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 1;
+        controlPanel.add(new JLabel("Blur size:"), gbc);
         
-        gbc.gridx = 1;
-        gbc.gridwidth = 2;
-        controlPanel.add(contourModeComboBox, gbc);
+        gbc.gridx = 1; gbc.gridwidth = 2;
+        controlPanel.add(blurSizeSlider, gbc);
         
-        gbc.gridx = 3;
-        gbc.gridwidth = 1;
-        controlPanel.add(new JLabel("Approximation method:"), gbc);
+        gbc.gridx = 3; gbc.gridwidth = 1;
+        controlPanel.add(new JLabel("Blur sigma:"), gbc);
         
-        gbc.gridx = 4;
-        gbc.gridwidth = 1;
-        controlPanel.add(contourMethodComboBox, gbc);
+        gbc.gridx = 4; gbc.gridwidth = 1;
+        controlPanel.add(blurSigmaSlider, gbc);
 
         mainPanel.add(buttonPanel);
         mainPanel.add(Box.createRigidArea(new Dimension(0, 10)));
@@ -225,17 +247,21 @@ public class Main {
         cannyThreshold1 = 50;
         cannyThreshold2 = 150;
         cannyApertureSize = 3;
-        useL1Gradient = true;
-        contourMode = 0;
-        contourMethod = 1;
+        useL2Gradient = false;
+        applyBlur = true;
+        blurSize = 3;
+        blurSigma = 1.0;
         
         threshold1Slider.setValue(cannyThreshold1);
         threshold2Slider.setValue(cannyThreshold2);
-        l1Button.setSelected(useL1Gradient);
-        l2Button.setSelected(!useL1Gradient);
+        l1Button.setSelected(!useL2Gradient);
+        l2Button.setSelected(useL2Gradient);
         apertureComboBox.setSelectedIndex(0);
-        contourModeComboBox.setSelectedIndex(0);
-        contourMethodComboBox.setSelectedIndex(0);
+        blurCheckBox.setSelected(applyBlur);
+        blurSizeSlider.setValue(blurSize);
+        blurSigmaSlider.setValue((int)(blurSigma * 10));
+        blurSizeSlider.setEnabled(applyBlur);
+        blurSigmaSlider.setEnabled(applyBlur);
         
         refreshDisplay();
     }
@@ -315,7 +341,7 @@ public class Main {
         imagePanel.removeAll();
 
         if (originalColorImages.isEmpty()) {
-            addLabel("No images loaded. Click «Open file manager» to load images.");
+            addLabel("<html>No images loaded. Click &laquo;Open file manager&raquo; to load images.</html>");
         }
         else {
             displayResults();
@@ -334,353 +360,105 @@ public class Main {
             
             BufferedImage colorOriginal = originalColorImages.get(i);
             BufferedImage grayOriginal = originalGrayImages.get(i);
-            BufferedImage cannyEdges = applyCanny(grayOriginal);
-            List<List<Point>> contours = findContours(cannyEdges);
-            BufferedImage contoursImage = drawContoursOnBlack(contours, colorOriginal.getWidth(), colorOriginal.getHeight());
-            BufferedImage contourOverlay = createContourOverlay(colorOriginal, contours, Color.RED);
+            
+            Mat grayMat = bufferedImageToGrayMat(grayOriginal);
+            Mat processedGray = grayMat.clone();
+            
+            if (applyBlur) {
+                Imgproc.GaussianBlur(processedGray, processedGray, new Size(blurSize, blurSize), blurSigma);
+            }
+            
+            Mat edges = new Mat();
+            Mat colorMat = bufferedImageToMat(colorOriginal);
+            
+            Imgproc.Canny(processedGray, edges, cannyThreshold1, cannyThreshold2, cannyApertureSize, useL2Gradient);
+            
+            List<MatOfPoint> contours = new ArrayList<>();
+            Mat hierarchy = new Mat();
+            
+            Imgproc.findContours(edges, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+            
+            Mat contoursOnBlack = Mat.zeros(edges.size(), CvType.CV_8UC3);
+            Mat contourOverlay = colorMat.clone();
+            
+            Scalar white = new Scalar(255, 255, 255);
+            Scalar red = new Scalar(0, 0, 255);
+            
+            Imgproc.drawContours(contoursOnBlack, contours, -1, white, 2);
+            Imgproc.drawContours(contourOverlay, contours, -1, red, 2);
+            
+            BufferedImage processedGrayImage = matToBufferedImage(processedGray);
+            BufferedImage contoursImage = matToBufferedImage(contoursOnBlack);
+            BufferedImage overlayImage = matToBufferedImage(contourOverlay);
             
             addImageToPanel(rowPanel, colorOriginal, "Color original");
-            addImageToPanel(rowPanel, grayOriginal, "Gray original");
-            addImageToPanel(rowPanel, contoursImage, "Detected contours");
-            addImageToPanel(rowPanel, contourOverlay, "Contours overlay");
+            addImageToPanel(rowPanel, processedGrayImage, "Processed gray");
+            addImageToPanel(rowPanel, contoursImage, "Detected contours (" + contours.size() + ")");
+            addImageToPanel(rowPanel, overlayImage, "Contours overlay");
             
             imagePanel.add(rowPanel);
             imagePanel.add(Box.createRigidArea(new Dimension(0, 10)));
-        }
-    }
-
-    private static BufferedImage applyCanny(BufferedImage image) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-        BufferedImage blurred = applyGaussianBlur(image, cannyApertureSize, 1.4f);
-        BufferedImage sobelX = applySobelX(blurred);
-        BufferedImage sobelY = applySobelY(blurred);
-        
-        float[][] gradientMagnitude = new float[height][width];
-        float[][] gradientDirection = new float[height][width];
-        
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int gx = sobelX.getRGB(x, y) & 0xFF;
-                int gy = sobelY.getRGB(x, y) & 0xFF;
-                float fx = (gx - 128) * 2.0f;
-                float fy = (gy - 128) * 2.0f;
-                
-                if (useL1Gradient) {
-                    gradientMagnitude[y][x] = Math.abs(fx) + Math.abs(fy);
-                }
-                else {
-                    gradientMagnitude[y][x] = (float) Math.sqrt(fx * fx + fy * fy);
-                }
-
-                gradientDirection[y][x] = (float) Math.toDegrees(Math.atan2(fy, fx));
-
-                if (gradientDirection[y][x] < 0) {
-                    gradientDirection[y][x] += 180;
-                }
-            }
-        }
-        
-        BufferedImage suppressed = nonMaximumSuppression(gradientMagnitude, gradientDirection, width, height);
-        boolean[][] strongEdges = new boolean[height][width];
-        boolean[][] weakEdges = new boolean[height][width];
-        
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int pixel = suppressed.getRGB(x, y) & 0xFF;
-
-                if (pixel >= cannyThreshold2) {
-                    strongEdges[y][x] = true;
-                }
-                else if (pixel >= cannyThreshold1) {
-                    weakEdges[y][x] = true;
-                }
-            }
-        }
-        
-        for (int y = 1; y < height - 1; y++) {
-            for (int x = 1; x < width - 1; x++) {
-                if (weakEdges[y][x]) {
-                    if (strongEdges[y-1][x-1] || strongEdges[y-1][x] || strongEdges[y-1][x+1] || strongEdges[y][x-1] || strongEdges[y][x+1] || strongEdges[y+1][x-1] || strongEdges[y+1][x] || strongEdges[y+1][x+1]) {
-                        strongEdges[y][x] = true;
-                    }
-                }
-            }
-        }
-        
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int newPixel = strongEdges[y][x] ? 255 : 0;
-                int rgb = (newPixel << 16) | (newPixel << 8) | newPixel;
-                result.setRGB(x, y, rgb);
-            }
-        }
-        
-        return result;
-    }
-
-    private static BufferedImage applyGaussianBlur(BufferedImage image, int kernelSize, float sigma) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-        float[] kernel = createGaussianKernel(kernelSize, sigma);
-        int radius = kernelSize / 2;
-        
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                float sum = 0;
-
-                for (int ky = -radius; ky <= radius; ky++) {
-                    for (int kx = -radius; kx <= radius; kx++) {
-                        int px = Math.min(Math.max(x + kx, 0), width - 1);
-                        int py = Math.min(Math.max(y + ky, 0), height - 1);
-                        int pixel = image.getRGB(px, py) & 0xFF;
-                        float weight = kernel[(ky + radius) * kernelSize + (kx + radius)];
-                        sum += pixel * weight;
-                    }
-                }
-
-                int gray = (int) Math.max(0, Math.min(255, sum));
-                int rgb = (gray << 16) | (gray << 8) | gray;
-                result.setRGB(x, y, rgb);
-            }
-        }
-
-        return result;
-    }
-
-    private static float[] createGaussianKernel(int size, float sigma) {
-        float[] kernel = new float[size * size];
-        float sum = 0;
-        int radius = size / 2;
-
-        for (int y = -radius; y <= radius; y++) {
-            for (int x = -radius; x <= radius; x++) {
-                float value = (float) Math.exp(-(x*x + y*y) / (2 * sigma * sigma));
-                kernel[(y + radius) * size + (x + radius)] = value;
-                sum += value;
-            }
-        }
-
-        for (int i = 0; i < kernel.length; i++) {
-            kernel[i] /= sum;
-        }
-
-        return kernel;
-    }
-
-    private static BufferedImage nonMaximumSuppression(float[][] magnitude, float[][] direction, int width, int height) {
-        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-
-        for (int y = 1; y < height - 1; y++) {
-            for (int x = 1; x < width - 1; x++) {
-                float angle = direction[y][x];
-                float mag = magnitude[y][x];
-                float mag1 = 0, mag2 = 0;
-                
-                if ((angle >= 0 && angle < 22.5) || (angle >= 157.5 && angle <= 180)) {
-                    mag1 = magnitude[y][x-1];
-                    mag2 = magnitude[y][x+1];
-                }
-                else if (angle >= 22.5 && angle < 67.5) {
-                    mag1 = magnitude[y-1][x+1];
-                    mag2 = magnitude[y+1][x-1];
-                }
-                else if (angle >= 67.5 && angle < 112.5) {
-                    mag1 = magnitude[y-1][x];
-                    mag2 = magnitude[y+1][x];
-                }
-                else if (angle >= 112.5 && angle < 157.5) {
-                    mag1 = magnitude[y-1][x-1];
-                    mag2 = magnitude[y+1][x+1];
-                }
-                
-                int newPixel = (mag >= mag1 && mag >= mag2) ? (int) mag : 0;
-                newPixel = Math.min(255, newPixel);
-                int rgb = (newPixel << 16) | (newPixel << 8) | newPixel;
-                result.setRGB(x, y, rgb);
-            }
-        }
-
-        return result;
-    }
-
-    private static List<List<Point>> findContours(BufferedImage binaryImage) {
-        List<List<Point>> contours = new ArrayList<>();
-        int width = binaryImage.getWidth();
-        int height = binaryImage.getHeight();
-        boolean[][] visited = new boolean[height][width];
-        int[] dx = {1, 1, 0, -1, -1, -1, 0, 1};
-        int[] dy = {0, -1, -1, -1, 0, 1, 1, 1};
-        
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int pixel = binaryImage.getRGB(x, y) & 0xFF;
-
-                if (pixel > 128 && !visited[y][x]) {
-                    List<Point> contour = new ArrayList<>();
-                    traceContourMoore(binaryImage, x, y, visited, contour, width, height, dx, dy);
-
-                    if (contour.size() > 5) {
-                        contours.add(contour);
-                    }
-                }
-            }
-        }
-
-        return contours;
-    }
-
-    private static void traceContourMoore(BufferedImage image, int startX, int startY, boolean[][] visited, List<Point> contour, int width, int height, int[] dx, int[] dy) {
-        int x = startX;
-        int y = startY;
-        int direction = 0;
-        int maxContourSize = 10000;
-        
-        do {
-            if (contour.size() >= maxContourSize) {
-                break;
-            }
-
-            contour.add(new Point(x, y));
-            visited[y][x] = true;
-            int startDir = (direction + 6) % 8;
-            boolean found = false;
-            int newDirection = direction;
             
-            for (int i = 0; i < 8; i++) {
-                int testDir = (startDir + i) % 8;
-                int nx = x + dx[testDir];
-                int ny = y + dy[testDir];
-
-                if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                    int pixel = image.getRGB(nx, ny) & 0xFF;
-
-                    if (pixel > 128) {
-                        x = nx;
-                        y = ny;
-                        newDirection = testDir;
-                        found = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!found) {
-                break;
-            }
-
-            direction = newDirection;
-        } while ((x != startX || y != startY) || contour.size() == 1);
-        
-        if (contour.size() > 1 && !contour.get(0).equals(contour.get(contour.size() - 1))) {
-            contour.add(new Point(contour.get(0).x, contour.get(0).y));
+            grayMat.release();
+            processedGray.release();
+            edges.release();
+            colorMat.release();
+            hierarchy.release();
+            contoursOnBlack.release();
+            contourOverlay.release();
         }
     }
 
-    private static BufferedImage drawContoursOnBlack(List<List<Point>> contours, int imageWidth, int imageHeight) {
-        BufferedImage result = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_BYTE_GRAY);
-        Graphics2D g2d = result.createGraphics();
-        g2d.setColor(Color.BLACK);
-        g2d.fillRect(0, 0, imageWidth, imageHeight);
-        
-        g2d.setColor(Color.WHITE);
-        g2d.setStroke(new BasicStroke(1.5f));
+    private static Mat bufferedImageToMat(BufferedImage image) {
+        try {
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            ImageIO.write(image, "jpg", byteArrayOutputStream);
+            byteArrayOutputStream.flush();
+            byte[] imageInByte = byteArrayOutputStream.toByteArray();
+            byteArrayOutputStream.close();
 
-        for (List<Point> contour : contours) {
-            if (contour.size() > 1) {
-                Point prev = contour.get(0);
-
-                for (int i = 1; i < contour.size(); i++) {
-                    Point current = contour.get(i);
-                    g2d.drawLine(prev.x, prev.y, current.x, current.y);
-                    prev = current;
-                }
-            }
+            return Imgcodecs.imdecode(new MatOfByte(imageInByte), Imgcodecs.IMREAD_COLOR);
         }
+        catch (Exception exception) {
+            exception.printStackTrace();
 
-        g2d.dispose();
-
-        return result;
+            return null;
+        }
     }
 
-    private static BufferedImage createContourOverlay(BufferedImage background, List<List<Point>> contours, Color contourColor) {
-        BufferedImage result = new BufferedImage(background.getWidth(), background.getHeight(), BufferedImage.TYPE_INT_RGB);
-        Graphics2D g2d = result.createGraphics();
-        g2d.drawImage(background, 0, 0, null);
-        g2d.setColor(contourColor);
-        g2d.setStroke(new BasicStroke(1.5f));
+    private static Mat bufferedImageToGrayMat(BufferedImage image) {
+        try {
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            ImageIO.write(image, "jpg", byteArrayOutputStream);
+            byteArrayOutputStream.flush();
+            byte[] imageInByte = byteArrayOutputStream.toByteArray();
+            byteArrayOutputStream.close();
 
-        for (List<Point> contour : contours) {
-            if (contour.size() > 1) {
-                Point prev = contour.get(0);
-
-                for (int i = 1; i < contour.size(); i++) {
-                    Point current = contour.get(i);
-                    g2d.drawLine(prev.x, prev.y, current.x, current.y);
-                    prev = current;
-                }
-            }
+            return Imgcodecs.imdecode(new MatOfByte(imageInByte), Imgcodecs.IMREAD_GRAYSCALE);
         }
-
-        g2d.dispose();
-
-        return result;
+        catch (Exception exception) {
+            exception.printStackTrace();
+            return null;
+        }
     }
+    
+    private static BufferedImage matToBufferedImage(Mat mat) {
+        try {
+            MatOfByte mob = new MatOfByte();
+            Imgcodecs.imencode(".jpg", mat, mob);
+            byte[] byteArray = mob.toArray();
+            mob.release();
+            ByteArrayInputStream bis = new ByteArrayInputStream(byteArray);
+            BufferedImage image = ImageIO.read(bis);
+            bis.close();
 
-    private static BufferedImage applySobelX(BufferedImage image) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-        int[] kernelX = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
-        
-        for (int y = 1; y < height - 1; y++) {
-            for (int x = 1; x < width - 1; x++) {
-                int sum = 0;
-
-                for (int ky = -1; ky <= 1; ky++) {
-                    for (int kx = -1; kx <= 1; kx++) {
-                        int pixel = image.getRGB(x + kx, y + ky) & 0xFF;
-                        int weight = kernelX[(ky + 1) * 3 + (kx + 1)];
-                        sum += pixel * weight;
-                    }
-                }
-
-                int gray = Math.max(0, Math.min(255, (sum / 4) + 128));
-                int rgb = (gray << 16) | (gray << 8) | gray;
-                result.setRGB(x, y, rgb);
-            }
+            return image;
         }
+        catch (Exception exception) {
+            exception.printStackTrace();
 
-        return result;
-    }
-
-    private static BufferedImage applySobelY(BufferedImage image) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-        int[] kernelY = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
-        
-        for (int y = 1; y < height - 1; y++) {
-            for (int x = 1; x < width - 1; x++) {
-                int sum = 0;
-
-                for (int ky = -1; ky <= 1; ky++) {
-                    for (int kx = -1; kx <= 1; kx++) {
-                        int pixel = image.getRGB(x + kx, y + ky) & 0xFF;
-                        int weight = kernelY[(ky + 1) * 3 + (kx + 1)];
-                        sum += pixel * weight;
-                    }
-                }
-
-                int gray = Math.max(0, Math.min(255, (sum / 4) + 128));
-                int rgb = (gray << 16) | (gray << 8) | gray;
-                result.setRGB(x, y, rgb);
-            }
+            return null;
         }
-
-        return result;
     }
 
     private static void addImageToPanel(JPanel parent, BufferedImage image, String title) {

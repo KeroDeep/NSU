@@ -5,12 +5,26 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import javax.imageio.ImageIO;
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
+import org.opencv.core.MatOfByte;
+import org.opencv.imgcodecs.Imgcodecs;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 
 public class Main {
+    static {
+        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+    }
+    
     private static JFrame mainFrame;
     private static JPanel imagePanel;
     private static List<BufferedImage> originalColorImages = new ArrayList<>();
     private static List<BufferedImage> originalGrayImages = new ArrayList<>();
+    private static List<Mat> noisyImages = new ArrayList<>();
     private static List<String> imagePaths = new ArrayList<>();
 
     private static FileManager currentFileManager = null;
@@ -159,11 +173,13 @@ public class Main {
         
         noiseStdSlider.addChangeListener(event -> {
             noiseStd = noiseStdSlider.getValue();
+            regenerateNoise();
             refreshDisplay();
         });
         
         noiseRangeSlider.addChangeListener(event -> {
             noiseRange = noiseRangeSlider.getValue();
+            regenerateNoise();
             refreshDisplay();
         });
         
@@ -196,6 +212,7 @@ public class Main {
             
             noiseLevelPanel.revalidate();
             noiseLevelPanel.repaint();
+            regenerateNoise();
             refreshDisplay();
         });
         
@@ -229,6 +246,17 @@ public class Main {
         return panel;
     }
     
+    private static void regenerateNoise() {
+        noisyImages.clear();
+
+        for (int i = 0; i < originalGrayImages.size(); i++) {
+            Mat grayMat = bufferedImageToMat(originalGrayImages.get(i));
+            Mat noisy = useGaussianNoise ? addGaussianNoise(grayMat, noiseStd) : addUniformNoise(grayMat, noiseRange);
+            noisyImages.add(noisy);
+            grayMat.release();
+        }
+    }
+    
     private static void openFileManager() {
         if (currentFileManager != null) {
             currentFileManager.close();
@@ -243,7 +271,7 @@ public class Main {
             if (paths.length > 0) {
                 loadImages(paths);
             }
-            
+
             refreshDisplay();
         });
         currentFileManager.showFileManager();
@@ -259,6 +287,13 @@ public class Main {
                     originalColorImages.add(colorImage);
                     originalGrayImages.add(grayImage);
                     imagePaths.add(path);
+                    
+                    Mat grayMat = bufferedImageToMat(grayImage);
+                    Mat noisy = useGaussianNoise ? 
+                        addGaussianNoise(grayMat, noiseStd) : 
+                        addUniformNoise(grayMat, noiseRange);
+                    noisyImages.add(noisy);
+                    grayMat.release();
                 }
             }
             catch (Exception event) {
@@ -269,11 +304,11 @@ public class Main {
     }
     
     private static BufferedImage convertToGrayscale(BufferedImage colorImage) {
-        BufferedImage grayImage = new BufferedImage(
-            colorImage.getWidth(), colorImage.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
+        BufferedImage grayImage = new BufferedImage(colorImage.getWidth(), colorImage.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
         Graphics g = grayImage.getGraphics();
         g.drawImage(colorImage, 0, 0, null);
         g.dispose();
+
         return grayImage;
     }
     
@@ -281,7 +316,7 @@ public class Main {
         imagePanel.removeAll();
         
         if (originalColorImages.isEmpty()) {
-            addLabel("No images loaded. Click «Open file manager» to load images.");
+            addLabel("<html>No images loaded. Click &laquo;Open file manager&raquo; to load images.</html>");
             imagePanel.revalidate();
             imagePanel.repaint();
 
@@ -309,20 +344,24 @@ public class Main {
             addImageToPanel(rowPanel, originalColorImages.get(i), "Color original");
             addImageToPanel(rowPanel, originalGrayImages.get(i), "Gray original");
             
-            BufferedImage noisy = useGaussianNoise ? addGaussianNoise(originalGrayImages.get(i), noiseStd) : addUniformNoise(originalGrayImages.get(i), noiseRange);
-            addImageToPanel(rowPanel, noisy, "Noisy image");
+            Mat noisy = noisyImages.get(i);
+            addImageToPanel(rowPanel, matToBufferedImage(noisy), "Noisy image");
             
-            BufferedImage gaussian = applyGaussianFilter(noisy, gaussianKernelSize, gaussianSigma);
-            addImageToPanel(rowPanel, gaussian, "Gaussian filter");
+            Mat gaussian = applyGaussianFilter(noisy.clone(), gaussianKernelSize, gaussianSigma);
+            addImageToPanel(rowPanel, matToBufferedImage(gaussian), "Gaussian filter");
             
-            BufferedImage median = applyMedianFilter(noisy, medianKernelSize);
-            addImageToPanel(rowPanel, median, "Median filter");
+            Mat median = applyMedianFilter(noisy.clone(), medianKernelSize);
+            addImageToPanel(rowPanel, matToBufferedImage(median), "Median filter");
             
-            BufferedImage custom = applyCustomFilter(noisy);
-            addImageToPanel(rowPanel, custom, "Custom filter");
+            Mat custom = applyCustomFilter(noisy.clone());
+            addImageToPanel(rowPanel, matToBufferedImage(custom), "Custom filter");
             
             imagePanel.add(rowPanel);
             imagePanel.add(Box.createRigidArea(new Dimension(0, 10)));
+            
+            gaussian.release();
+            median.release();
+            custom.release();
         }
     }
     
@@ -336,20 +375,28 @@ public class Main {
             addImageToPanel(rowPanel, originalColorImages.get(i), "Color original");
             addImageToPanel(rowPanel, originalGrayImages.get(i), "Gray original");
             
-            BufferedImage laplacian = applyLaplacian(originalGrayImages.get(i));
-            addImageToPanel(rowPanel, laplacian, "Laplacian");
+            Mat originalGrayMat = bufferedImageToMat(originalGrayImages.get(i));
             
-            BufferedImage sobelX = applySobelX(originalGrayImages.get(i));
-            addImageToPanel(rowPanel, sobelX, "Sobel X");
+            Mat laplacian = applyLaplacian(originalGrayMat.clone());
+            addImageToPanel(rowPanel, matToBufferedImage(laplacian), "Laplacian");
             
-            BufferedImage sobelY = applySobelY(originalGrayImages.get(i));
-            addImageToPanel(rowPanel, sobelY, "Sobel Y");
+            Mat sobelX = applySobelX(originalGrayMat.clone());
+            addImageToPanel(rowPanel, matToBufferedImage(sobelX), "Sobel X");
             
-            BufferedImage sobelXY = combineSobel(sobelX, sobelY);
-            addImageToPanel(rowPanel, sobelXY, "Sobel X+Y");
+            Mat sobelY = applySobelY(originalGrayMat.clone());
+            addImageToPanel(rowPanel, matToBufferedImage(sobelY), "Sobel Y");
+            
+            Mat sobelXY = combineSobel(sobelX.clone(), sobelY.clone());
+            addImageToPanel(rowPanel, matToBufferedImage(sobelXY), "Sobel X+Y");
             
             imagePanel.add(rowPanel);
             imagePanel.add(Box.createRigidArea(new Dimension(0, 10)));
+            
+            originalGrayMat.release();
+            laplacian.release();
+            sobelX.release();
+            sobelY.release();
+            sobelXY.release();
         }
     }
     
@@ -372,263 +419,122 @@ public class Main {
         parent.add(container);
     }
     
-    private static BufferedImage applyGaussianFilter(BufferedImage image, int kernelSize, double sigma) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-        
-        float[] kernel = createGaussianKernel(kernelSize, sigma);
-        int radius = kernelSize / 2;
-        
-        for (int y = radius; y < height - radius; y++) {
-            for (int x = radius; x < width - radius; x++) {
-                float sum = 0;
+    private static Mat applyGaussianFilter(Mat image, int kernelSize, double sigma) {
+        Mat result = new Mat();
+        Imgproc.GaussianBlur(image, result, new Size(kernelSize, kernelSize), sigma);
 
-                for (int ky = -radius; ky <= radius; ky++) {
-                    for (int kx = -radius; kx <= radius; kx++) {
-                        int pixel = image.getRGB(x + kx, y + ky) & 0xFF;
-                        float weight = kernel[(ky + radius) * kernelSize + (kx + radius)];
-                        sum += pixel * weight;
-                    }
-                }
-
-                int gray = (int) Math.max(0, Math.min(255, sum));
-                int rgb = (gray << 16) | (gray << 8) | gray;
-                result.setRGB(x, y, rgb);
-            }
-        }
-        
         return result;
     }
     
-    private static float[] createGaussianKernel(int size, double sigma) {
-        float[] kernel = new float[size * size];
-        float sum = 0;
-        
-        int radius = size / 2;
+    private static Mat applyMedianFilter(Mat image, int kernelSize) {
+        Mat result = new Mat();
+        Imgproc.medianBlur(image, result, kernelSize);
 
-        for (int y = -radius; y <= radius; y++) {
-            for (int x = -radius; x <= radius; x++) {
-                float value = (float) Math.exp(-(x*x + y*y) / (2 * sigma * sigma));
-                kernel[(y + radius) * size + (x + radius)] = value;
-                sum += value;
-            }
-        }
-        
-        for (int i = 0; i < kernel.length; i++) {
-            kernel[i] /= sum;
-        }
-        
-        return kernel;
-    }
-    
-    private static BufferedImage applyMedianFilter(BufferedImage image, int kernelSize) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-        
-        int radius = kernelSize / 2;
-        int[] window = new int[kernelSize * kernelSize];
-        
-        for (int y = radius; y < height - radius; y++) {
-            for (int x = radius; x < width - radius; x++) {
-                int index = 0;
-
-                for (int ky = -radius; ky <= radius; ky++) {
-                    for (int kx = -radius; kx <= radius; kx++) {
-                        window[index++] = image.getRGB(x + kx, y + ky) & 0xFF;
-                    }
-                }
-                
-                java.util.Arrays.sort(window);
-                int median = window[window.length / 2];
-                int rgb = (median << 16) | (median << 8) | median;
-                result.setRGB(x, y, rgb);
-            }
-        }
-        
         return result;
     }
     
-    private static BufferedImage applyCustomFilter(BufferedImage image) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-        
-        float[] kernel = {
-            -1, -1, -1,
-            -1,  9, -1,
-            -1, -1, -1
-        };
-        
-        for (int y = 1; y < height - 1; y++) {
-            for (int x = 1; x < width - 1; x++) {
-                float sum = 0;
+    private static Mat applyCustomFilter(Mat image) {
+        Mat result = new Mat();
+        Mat kernel = new Mat(3, 3, CvType.CV_32F);
+        float[] kernelData = {-1, -1, -1, -1, 9, -1, -1, -1, -1};
+        kernel.put(0, 0, kernelData);
+        Imgproc.filter2D(image, result, -1, kernel);
+        kernel.release();
 
-                for (int ky = -1; ky <= 1; ky++) {
-                    for (int kx = -1; kx <= 1; kx++) {
-                        int pixel = image.getRGB(x + kx, y + ky) & 0xFF;
-                        float weight = kernel[(ky + 1) * 3 + (kx + 1)];
-                        sum += pixel * weight;
-                    }
-                }
-
-                int gray = (int) Math.max(0, Math.min(255, sum));
-                int rgb = (gray << 16) | (gray << 8) | gray;
-                result.setRGB(x, y, rgb);
-            }
-        }
-        
         return result;
     }
     
-    private static BufferedImage applySobelX(BufferedImage image) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-        
-        int[] kernelX = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
-        
-        for (int y = 1; y < height - 1; y++) {
-            for (int x = 1; x < width - 1; x++) {
-                int sum = 0;
+    private static Mat applySobelX(Mat image) {
+        Mat result = new Mat();
+        Imgproc.Sobel(image, result, CvType.CV_16S, 1, 0);
+        Core.convertScaleAbs(result, result);
 
-                for (int ky = -1; ky <= 1; ky++) {
-                    for (int kx = -1; kx <= 1; kx++) {
-                        int pixel = image.getRGB(x + kx, y + ky) & 0xFF;
-                        int weight = kernelX[(ky + 1) * 3 + (kx + 1)];
-                        sum += pixel * weight;
-                    }
-                }
-
-                int gray = Math.max(0, Math.min(255, Math.abs(sum) / 4));
-                int rgb = (gray << 16) | (gray << 8) | gray;
-                result.setRGB(x, y, rgb);
-            }
-        }
-        
         return result;
     }
     
-    private static BufferedImage applySobelY(BufferedImage image) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-        
-        int[] kernelY = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
-        
-        for (int y = 1; y < height - 1; y++) {
-            for (int x = 1; x < width - 1; x++) {
-                int sum = 0;
+    private static Mat applySobelY(Mat image) {
+        Mat result = new Mat();
+        Imgproc.Sobel(image, result, CvType.CV_16S, 0, 1);
+        Core.convertScaleAbs(result, result);
 
-                for (int ky = -1; ky <= 1; ky++) {
-                    for (int kx = -1; kx <= 1; kx++) {
-                        int pixel = image.getRGB(x + kx, y + ky) & 0xFF;
-                        int weight = kernelY[(ky + 1) * 3 + (kx + 1)];
-                        sum += pixel * weight;
-                    }
-                }
-
-                int gray = Math.max(0, Math.min(255, Math.abs(sum) / 4));
-                int rgb = (gray << 16) | (gray << 8) | gray;
-                result.setRGB(x, y, rgb);
-            }
-        }
-        
         return result;
     }
     
-    private static BufferedImage combineSobel(BufferedImage sobelX, BufferedImage sobelY) {
-        int width = sobelX.getWidth();
-        int height = sobelX.getHeight();
-        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-        
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int gx = sobelX.getRGB(x, y) & 0xFF;
-                int gy = sobelY.getRGB(x, y) & 0xFF;
-                int magnitude = (int) Math.min(255, Math.sqrt(gx * gx + gy * gy));
-                int rgb = (magnitude << 16) | (magnitude << 8) | magnitude;
-                result.setRGB(x, y, rgb);
-            }
-        }
-        
+    private static Mat combineSobel(Mat sobelX, Mat sobelY) {
+        Mat result = new Mat();
+        Core.addWeighted(sobelX, 0.5, sobelY, 0.5, 0, result);
+
         return result;
     }
     
-    private static BufferedImage applyLaplacian(BufferedImage image) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-        
-        int[] kernel = {0, -1, 0, -1, 4, -1, 0, -1, 0};
-        
-        for (int y = 1; y < height - 1; y++) {
-            for (int x = 1; x < width - 1; x++) {
-                int sum = 0;
+    private static Mat applyLaplacian(Mat image) {
+        Mat result = new Mat();
+        Imgproc.Laplacian(image, result, CvType.CV_16S);
+        Core.convertScaleAbs(result, result);
 
-                for (int ky = -1; ky <= 1; ky++) {
-                    for (int kx = -1; kx <= 1; kx++) {
-                        int pixel = image.getRGB(x + kx, y + ky) & 0xFF;
-                        int weight = kernel[(ky + 1) * 3 + (kx + 1)];
-                        sum += pixel * weight;
-                    }
-                }
-
-                int gray = Math.max(0, Math.min(255, Math.abs(sum)));
-                int rgb = (gray << 16) | (gray << 8) | gray;
-                result.setRGB(x, y, rgb);
-            }
-        }
-        
         return result;
     }
     
-    private static BufferedImage addGaussianNoise(BufferedImage image, double std) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-        java.util.Random rand = new java.util.Random();
-        
-        double normalizedStd = std / 5.0;
-        
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int pixel = image.getRGB(x, y) & 0xFF;
-                double noise = rand.nextGaussian() * normalizedStd;
-                int newPixel = (int) Math.max(0, Math.min(255, pixel + noise));
-                int rgb = (newPixel << 16) | (newPixel << 8) | newPixel;
-                result.setRGB(x, y, rgb);
-            }
-        }
-        
+    private static Mat addGaussianNoise(Mat image, double std) {
+        Mat noise = new Mat(image.size(), image.type());
+        Mat result = new Mat();
+        Core.randn(noise, 0, std);
+        Core.add(image, noise, result);
+        noise.release();
+
         return result;
     }
 
-    private static BufferedImage addUniformNoise(BufferedImage image, int range) {
-        int width = image.getWidth();
-        int height = image.getHeight();
-        BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
-        java.util.Random rand = new java.util.Random();
-        
-        int normalizedRange = range / 2;
-        
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                int pixel = image.getRGB(x, y) & 0xFF;
-                int noise = rand.nextInt(2 * normalizedRange + 1) - normalizedRange;
-                int newPixel = Math.max(0, Math.min(255, pixel + noise));
-                int rgb = (newPixel << 16) | (newPixel << 8) | newPixel;
-                result.setRGB(x, y, rgb);
-            }
-        }
-        
+    private static Mat addUniformNoise(Mat image, int range) {
+        Mat noise = new Mat(image.size(), image.type());
+        Mat result = new Mat();
+        Core.randu(noise, -range/2, range/2);
+        Core.add(image, noise, result);
+        noise.release();
+
         return result;
+    }
+    
+    private static Mat bufferedImageToMat(BufferedImage image) {
+        try {
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            ImageIO.write(image, "jpg", byteArrayOutputStream);
+            byteArrayOutputStream.flush();
+            byte[] imageInByte = byteArrayOutputStream.toByteArray();
+            byteArrayOutputStream.close();
+
+            return Imgcodecs.imdecode(new MatOfByte(imageInByte), Imgcodecs.IMREAD_GRAYSCALE);
+        }
+        catch (Exception exception) {
+            exception.printStackTrace();
+
+            return null;
+        }
+    }
+    
+    private static BufferedImage matToBufferedImage(Mat mat) {
+        try {
+            MatOfByte mob = new MatOfByte();
+            Imgcodecs.imencode(".jpg", mat, mob);
+            byte[] byteArray = mob.toArray();
+            mob.release();
+            ByteArrayInputStream bis = new ByteArrayInputStream(byteArray);
+            BufferedImage image = ImageIO.read(bis);
+            bis.close();
+
+            return image;
+        }
+        catch (Exception exception) {
+            exception.printStackTrace();
+
+            return null;
+        }
     }
     
     private static void clearAll() {
         originalColorImages.clear();
         originalGrayImages.clear();
+        noisyImages.clear();
         imagePaths.clear();
         refreshDisplay();
     }
@@ -651,6 +557,7 @@ public class Main {
         double scaleFactor = Math.min((double) maxWidth / originalWidth, (double) maxHeight / originalHeight);
         int scaledWidth = (int) (originalWidth * scaleFactor);
         int scaledHeight = (int) (originalHeight * scaleFactor);
+        
         return original.getScaledInstance(scaledWidth, scaledHeight, Image.SCALE_SMOOTH);
     }
 }

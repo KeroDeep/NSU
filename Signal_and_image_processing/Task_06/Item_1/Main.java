@@ -29,7 +29,7 @@ public class Main {
 
     private Random random = new Random();
     private static final int maxNoisyImages = 100;
-    private static final double TargetPSNR = 50.0;
+    private static final double TargetPSNR = 30.0;
 
     public static void main(String[] args) {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
