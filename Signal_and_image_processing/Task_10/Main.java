@@ -134,15 +134,15 @@ public class Main {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(2, 5, 2, 5);
         
-        sensitivitySlider = new JSlider(0, 100, (int)(sensitivity * 100));
+        sensitivitySlider = new JSlider(0, 100, (int)(sensitivity * 1000));
         sensitivitySlider.setMajorTickSpacing(20);
         sensitivitySlider.setMinorTickSpacing(5);
         sensitivitySlider.setPaintTicks(true);
         sensitivitySlider.setPaintLabels(true);
         
-        blockSizeSlider = new JSlider(1, 50, blockSize);
-        blockSizeSlider.setMajorTickSpacing(10);
-        blockSizeSlider.setMinorTickSpacing(2);
+        blockSizeSlider = new JSlider(1, 10, blockSize);
+        blockSizeSlider.setMajorTickSpacing(3);
+        blockSizeSlider.setMinorTickSpacing(1);
         blockSizeSlider.setPaintTicks(true);
         blockSizeSlider.setPaintLabels(true);
         
@@ -150,15 +150,15 @@ public class Main {
         apertureComboBox = new JComboBox<>(apertureOptions);
         apertureComboBox.setSelectedIndex(getApertureIndex(aperture));
         
-        thresholdSlider = new JSlider(0, 100, (int)(threshold * 100));
-        thresholdSlider.setMajorTickSpacing(20);
-        thresholdSlider.setMinorTickSpacing(5);
+        thresholdSlider = new JSlider(0, 50, (int)(threshold * 1000));
+        thresholdSlider.setMajorTickSpacing(10);
+        thresholdSlider.setMinorTickSpacing(2);
         thresholdSlider.setPaintTicks(true);
         thresholdSlider.setPaintLabels(true);
         
         sensitivitySlider.addChangeListener(event -> {
             if (!isResetting) {
-                sensitivity = sensitivitySlider.getValue() / 100.0;
+                sensitivity = sensitivitySlider.getValue() / 1000.0;
                 refreshDisplay();
             }
         });
@@ -166,6 +166,7 @@ public class Main {
         blockSizeSlider.addChangeListener(event -> {
             if (!isResetting) {
                 blockSize = blockSizeSlider.getValue();
+                if (blockSize % 2 == 0) blockSize++;
                 refreshDisplay();
             }
         });
@@ -179,7 +180,7 @@ public class Main {
         
         thresholdSlider.addChangeListener(event -> {
             if (!isResetting) {
-                threshold = thresholdSlider.getValue() / 100.0;
+                threshold = thresholdSlider.getValue() / 1000.0;
                 refreshDisplay();
             }
         });
@@ -233,33 +234,33 @@ public class Main {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(2, 5, 2, 5);
         
-        maxCornersSlider = new JSlider(0, 10000, maxCorners);
-        maxCornersSlider.setMajorTickSpacing(2000);
-        maxCornersSlider.setMinorTickSpacing(500);
+        maxCornersSlider = new JSlider(0, 1000, maxCorners);
+        maxCornersSlider.setMajorTickSpacing(200);
+        maxCornersSlider.setMinorTickSpacing(50);
         maxCornersSlider.setPaintTicks(true);
         maxCornersSlider.setPaintLabels(true);
         
-        qualityLevelSlider = new JSlider(0, 100, (int)(qualityLevel * 100));
+        qualityLevelSlider = new JSlider(0, 100, (int)(qualityLevel * 1000));
         qualityLevelSlider.setMajorTickSpacing(20);
         qualityLevelSlider.setMinorTickSpacing(5);
         qualityLevelSlider.setPaintTicks(true);
         qualityLevelSlider.setPaintLabels(true);
         
-        minDistanceSlider = new JSlider(0, 100, (int)minDistance);
-        minDistanceSlider.setMajorTickSpacing(20);
-        minDistanceSlider.setMinorTickSpacing(5);
+        minDistanceSlider = new JSlider(0, 50, (int)minDistance);
+        minDistanceSlider.setMajorTickSpacing(10);
+        minDistanceSlider.setMinorTickSpacing(2);
         minDistanceSlider.setPaintTicks(true);
         minDistanceSlider.setPaintLabels(true);
         
-        shiTomasiBlockSizeSlider = new JSlider(1, 50, shiTomasiBlockSize);
-        shiTomasiBlockSizeSlider.setMajorTickSpacing(10);
-        shiTomasiBlockSizeSlider.setMinorTickSpacing(2);
+        shiTomasiBlockSizeSlider = new JSlider(1, 10, shiTomasiBlockSize);
+        shiTomasiBlockSizeSlider.setMajorTickSpacing(3);
+        shiTomasiBlockSizeSlider.setMinorTickSpacing(1);
         shiTomasiBlockSizeSlider.setPaintTicks(true);
         shiTomasiBlockSizeSlider.setPaintLabels(true);
         
         useHarrisCheckBox = new JCheckBox("Harris detector", useHarris);
         
-        shiTomasiSensitivitySlider = new JSlider(0, 100, (int)(shiTomasiSensitivity * 100));
+        shiTomasiSensitivitySlider = new JSlider(0, 100, (int)(shiTomasiSensitivity * 1000));
         shiTomasiSensitivitySlider.setMajorTickSpacing(20);
         shiTomasiSensitivitySlider.setMinorTickSpacing(5);
         shiTomasiSensitivitySlider.setPaintTicks(true);
@@ -274,7 +275,7 @@ public class Main {
         
         qualityLevelSlider.addChangeListener(event -> {
             if (!isResetting) {
-                qualityLevel = qualityLevelSlider.getValue() / 100.0;
+                qualityLevel = qualityLevelSlider.getValue() / 1000.0;
                 refreshDisplay();
             }
         });
@@ -289,6 +290,7 @@ public class Main {
         shiTomasiBlockSizeSlider.addChangeListener(event -> {
             if (!isResetting) {
                 shiTomasiBlockSize = shiTomasiBlockSizeSlider.getValue();
+                if (shiTomasiBlockSize % 2 == 0) shiTomasiBlockSize++;
                 refreshDisplay();
             }
         });
@@ -302,7 +304,7 @@ public class Main {
         
         shiTomasiSensitivitySlider.addChangeListener(event -> {
             if (!isResetting) {
-                shiTomasiSensitivity = shiTomasiSensitivitySlider.getValue() / 100.0;
+                shiTomasiSensitivity = shiTomasiSensitivitySlider.getValue() / 1000.0;
                 refreshDisplay();
             }
         });
@@ -350,33 +352,33 @@ public class Main {
         rotationAngleSlider.setPaintTicks(true);
         rotationAngleSlider.setPaintLabels(true);
         
-        scaleFactorSlider = new JSlider(0, 100, (int)(scaleFactor * 100));
-        scaleFactorSlider.setMajorTickSpacing(20);
-        scaleFactorSlider.setMinorTickSpacing(5);
+        scaleFactorSlider = new JSlider(50, 200, (int)(scaleFactor * 100));
+        scaleFactorSlider.setMajorTickSpacing(50);
+        scaleFactorSlider.setMinorTickSpacing(10);
         scaleFactorSlider.setPaintTicks(true);
         scaleFactorSlider.setPaintLabels(true);
         
-        shearAmountSlider = new JSlider(-100, 100, (int)(shearAmount * 100));
-        shearAmountSlider.setMajorTickSpacing(50);
-        shearAmountSlider.setMinorTickSpacing(10);
+        shearAmountSlider = new JSlider(-50, 50, (int)(shearAmount * 100));
+        shearAmountSlider.setMajorTickSpacing(25);
+        shearAmountSlider.setMinorTickSpacing(5);
         shearAmountSlider.setPaintTicks(true);
         shearAmountSlider.setPaintLabels(true);
         
-        perspectiveStrengthSlider = new JSlider(-100, 100, (int)(perspectiveStrength * 100));
-        perspectiveStrengthSlider.setMajorTickSpacing(50);
-        perspectiveStrengthSlider.setMinorTickSpacing(10);
+        perspectiveStrengthSlider = new JSlider(-50, 50, (int)(perspectiveStrength * 100));
+        perspectiveStrengthSlider.setMajorTickSpacing(25);
+        perspectiveStrengthSlider.setMinorTickSpacing(5);
         perspectiveStrengthSlider.setPaintTicks(true);
         perspectiveStrengthSlider.setPaintLabels(true);
         
-        brightnessSlider = new JSlider(-255, 255, (int)brightness);
-        brightnessSlider.setMajorTickSpacing(100);
-        brightnessSlider.setMinorTickSpacing(25);
+        brightnessSlider = new JSlider(-100, 100, (int)brightness);
+        brightnessSlider.setMajorTickSpacing(50);
+        brightnessSlider.setMinorTickSpacing(10);
         brightnessSlider.setPaintTicks(true);
         brightnessSlider.setPaintLabels(true);
         
-        contrastSlider = new JSlider(0, 25, (int)contrast);
-        contrastSlider.setMajorTickSpacing(5);
-        contrastSlider.setMinorTickSpacing(1);
+        contrastSlider = new JSlider(0, 300, (int)(contrast * 100));
+        contrastSlider.setMajorTickSpacing(100);
+        contrastSlider.setMinorTickSpacing(25);
         contrastSlider.setPaintTicks(true);
         contrastSlider.setPaintLabels(true);
         
@@ -417,7 +419,7 @@ public class Main {
         
         contrastSlider.addChangeListener(event -> {
             if (!isResetting) {
-                contrast = contrastSlider.getValue();
+                contrast = contrastSlider.getValue() / 100.0;
                 refreshDisplay();
             }
         });
@@ -459,7 +461,7 @@ public class Main {
         isResetting = true;
         
         sensitivity = 0.04;
-        blockSize = 2;
+        blockSize = 3;
         aperture = 3;
         threshold = 0.01;
         
@@ -477,24 +479,24 @@ public class Main {
         brightness = 30.0;
         contrast = 1.3;
         
-        sensitivitySlider.setValue((int)(sensitivity * 100));
+        sensitivitySlider.setValue((int)(sensitivity * 1000));
         blockSizeSlider.setValue(blockSize);
         apertureComboBox.setSelectedIndex(getApertureIndex(aperture));
-        thresholdSlider.setValue((int)(threshold * 100));
+        thresholdSlider.setValue((int)(threshold * 1000));
         
         maxCornersSlider.setValue(maxCorners);
-        qualityLevelSlider.setValue((int)(qualityLevel * 100));
+        qualityLevelSlider.setValue((int)(qualityLevel * 1000));
         minDistanceSlider.setValue((int)minDistance);
         shiTomasiBlockSizeSlider.setValue(shiTomasiBlockSize);
         useHarrisCheckBox.setSelected(useHarris);
-        shiTomasiSensitivitySlider.setValue((int)(shiTomasiSensitivity * 100));
+        shiTomasiSensitivitySlider.setValue((int)(shiTomasiSensitivity * 1000));
         
         rotationAngleSlider.setValue((int)rotationAngle);
         scaleFactorSlider.setValue((int)(scaleFactor * 100));
         shearAmountSlider.setValue((int)(shearAmount * 100));
         perspectiveStrengthSlider.setValue((int)(perspectiveStrength * 100));
         brightnessSlider.setValue((int)brightness);
-        contrastSlider.setValue((int)contrast);
+        contrastSlider.setValue((int)(contrast * 100));
         
         isResetting = false;
         refreshDisplay();
@@ -597,7 +599,7 @@ public class Main {
             Mat grayMat = new Mat();
             Imgproc.cvtColor(originalMat, grayMat, Imgproc.COLOR_BGR2GRAY);
             
-            Mat harrisCorners = detectHarrisCorners(grayMat);
+            MatOfPoint harrisCorners = detectHarrisCorners(grayMat);
             MatOfPoint shiTomasiCorners = detectShiTomasiCorners(grayMat);
             
             BufferedImage transformedImage = applyTransformations(original);
@@ -605,7 +607,7 @@ public class Main {
             Mat transformedGray = new Mat();
             Imgproc.cvtColor(transformedMat, transformedGray, Imgproc.COLOR_BGR2GRAY);
             
-            Mat transformedHarrisCorners = detectHarrisCorners(transformedGray);
+            MatOfPoint transformedHarrisCorners = detectHarrisCorners(transformedGray);
             MatOfPoint transformedShiTomasiCorners = detectShiTomasiCorners(transformedGray);
             
             BufferedImage harrisResult = drawCornersOnImage(original, harrisCorners, Color.RED);
@@ -637,7 +639,7 @@ public class Main {
         }
     }
     
-    private static Mat detectHarrisCorners(Mat gray) {
+    private static MatOfPoint detectHarrisCorners(Mat gray) {
         Mat dst = new Mat();
         Mat dstNorm = new Mat();
         Mat dstNormScaled = new Mat();
@@ -655,13 +657,17 @@ public class Main {
         Mat corners = new Mat();
         Core.findNonZero(binary, corners);
         
+        MatOfPoint result = new MatOfPoint();
+        corners.convertTo(result, CvType.CV_32S);
+        
         dst.release();
         dstNorm.release();
         dstNormScaled.release();
         binary.release();
         grayFloat.release();
+        corners.release();
         
-        return corners;
+        return result;
     }
     
     private static MatOfPoint detectShiTomasiCorners(Mat gray) {
@@ -712,31 +718,6 @@ public class Main {
         originalMat.release();
         transformed.release();
         
-        return result;
-    }
-    
-    private static BufferedImage drawCornersOnImage(BufferedImage original, Mat corners, Color color) {
-        BufferedImage result = new BufferedImage(original.getWidth(), original.getHeight(), BufferedImage.TYPE_INT_RGB);
-        Graphics2D g2d = result.createGraphics();
-        g2d.drawImage(original, 0, 0, null);
-        
-        g2d.setColor(color);
-        g2d.setStroke(new BasicStroke(2));
-        
-        if (corners.rows() > 0) {
-            for (int i = 0; i < corners.rows(); i++) {
-                double[] point = corners.get(i, 0);
-
-                if (point != null && point.length >= 2) {
-                    int x = (int) point[0];
-                    int y = (int) point[1];
-                    g2d.fillOval(x - 3, y - 3, 6, 6);
-                }
-            }
-        }
-        
-        g2d.dispose();
-
         return result;
     }
     
