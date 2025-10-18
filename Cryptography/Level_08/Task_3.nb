@@ -1,0 +1,78 @@
+(* Multi-party computation *)
+
+YaoMillionairesProblem[aWealth_, bWealth_] := Module[
+  {alice = aWealth, bob = bWealth, result},
+  Print["Задача миллионеров Яо"];
+  Print["Алиса имеет: ", alice];
+  Print["Боб имеет: ", bob];
+  (* Упрощенная реализация - в реальности использовались бы oblivious transfer *)
+  If[alice > bob,
+    result = "Алиса богаче",
+    If[alice < bob,
+      result = "Боб богаче",
+      result = "Одинаково богаты"
+    ]
+  ];
+  Print["Результат: ", result];
+  result
+]
+
+ShamirSecretSharing[secret_, n_, k_] := Module[
+  {coefficients, shares = {}},
+  (* Генерация случайных коэффициентов *)
+  coefficients = Prepend[Table[RandomInteger[100], {k - 1}], secret];
+  (* Вычисление долей *)
+  Do[
+    AppendTo[shares, {x, Sum[coefficients[[j]] * x^(j - 1), {j, 1, k}]}],
+    {x, 1, n}
+  ];
+  shares
+]
+
+RecoverSecret[shares_, k_] := Module[
+  {xValues, yValues, secret = 0},
+  {xValues, yValues} = Transpose[shares];
+  (* Интерполяция Лагранжа *)
+  Do[
+    term = yValues[[i]];
+    Do[
+      If[i != j, term = term * (0 - xValues[[j]]) / (xValues[[i]] - xValues[[j]])],
+      {j, Length[shares]}
+    ];
+    secret += term,
+    {i, k}
+  ];
+  Round[secret]
+]
+
+SecureAggregation[data_, parties_] := Module[
+  {noisedData = {}, aggregated},
+  (* Добавление дифференциально-приватного шума *)
+  Do[
+    noise = RandomVariate[NormalDistribution[0, 1]];
+    AppendTo[noisedData, data[[i]] + noise],
+    {i, Length[data]}
+  ];
+  aggregated = Mean[noisedData];
+  <|
+    "original_mean" -> Mean[data],
+    "noised_mean" -> aggregated,
+    "privacy_level" -> "ε-differential privacy"
+  |>
+]
+
+Print["Задача миллионеров Яо:"];
+YaoMillionairesProblem[850000, 920000];
+
+Print["\nРазделение секрета Шамира:"];
+secret = 42;
+shares = ShamirSecretSharing[secret, 5, 3];
+Print["Доли секрета: ", Take[shares, 3]];
+recovered = RecoverSecret[Take[shares, 3], 3];
+Print["Восстановленный секрет: ", recovered];
+
+Print["\nБезопасная агрегация данных:"];
+testData = {100, 105, 98, 102, 107};
+aggregation = SecureAggregation[testData, 5];
+Print["Оригинальное среднее: ", aggregation["original_mean"]];
+Print["Зашумленное среднее: ", aggregation["noised_mean"]];

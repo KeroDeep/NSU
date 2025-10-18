@@ -1,0 +1,50 @@
+(* Протоколы обмена ключами *)
+
+DiffieHellmanKeyExchange[p_, g_] := Module[
+  {a, b, A, B, sharedA, sharedB},
+  a = RandomInteger[{2, p - 2}]; (* Приватный ключ Алисы *)
+  b = RandomInteger[{2, p - 2}]; (* Приватный ключ Боба *)
+  A = PowerMod[g, a, p]; (* Публичный ключ Алисы *)
+  B = PowerMod[g, b, p]; (* Публичный ключ Боба *)
+  sharedA = PowerMod[B, a, p]; (* Общий секрет Алисы *)
+  sharedB = PowerMod[A, b, p]; (* Общий секрет Боба *)
+  <|"alice_private" -> a, "bob_private" -> b, "alice_public" -> A, "bob_public" -> B, 
+    "shared_alice" -> sharedA, "shared_bob" -> sharedB|>
+]
+
+MITMAttack[p_, g_, A_, B_] := Module[
+  {mallory_private, mallory_to_alice, mallory_to_bob, shared_with_alice, shared_with_bob},
+  mallory_private = RandomInteger[{2, p - 2}];
+  mallory_to_alice = PowerMod[g, mallory_private, p];
+  mallory_to_bob = PowerMod[g, mallory_private, p];
+  shared_with_alice = PowerMod[A, mallory_private, p];
+  shared_with_bob = PowerMod[B, mallory_private, p];
+  <|"mallory_private" -> mallory_private, "shared_with_alice" -> shared_with_alice, 
+    "shared_with_bob" -> shared_with_bob|>
+]
+
+PreventMITM[publicKey_, identity_] := Module[
+  {},
+  Print["Верификация открытого ключа для ", identity, ": ", publicKey];
+  True (* В реальности здесь была бы проверка сертификата *)
+]
+
+(* Демонстрация *)
+p = NextPrime[10^6];
+g = PrimitiveRoot[p];
+exchange = DiffieHellmanKeyExchange[p, g];
+Print["Диффи-Хеллман обмен:"];
+Print["Алиса вычисляет: ", exchange["shared_alice"]];
+Print["Боб вычисляет: ", exchange["shared_bob"]];
+Print["Совпадают: ", exchange["shared_alice"] == exchange["shared_bob"]];
+
+(* Атака MITM *)
+mitm = MITMAttack[p, g, exchange["alice_public"], exchange["bob_public"]];
+Print["MITM атака: Мэллори может читать сообщения"];
+Print["Общий секрет с Алисой: ", mitm["shared_with_alice"]];
+Print["Общий секрет с Бобом: ", mitm["shared_with_bob"]];
+
+(* Защита *)
+Print["Защита от MITM:"];
+PreventMITM[exchange["alice_public"], "Alice"];
+PreventMITM[exchange["bob_public"], "Bob"];

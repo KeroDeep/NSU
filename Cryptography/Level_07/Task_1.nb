@@ -1,0 +1,67 @@
+(* SSL/TLS протокол *)
+
+TLSHandshakeSimulation[] := Module[
+  {clientHello, serverHello, certificate, keyExchange, finished},
+  Print["=== TLS Handshake Simulation ==="];
+  (* Шаг 1: Client Hello *)
+  clientHello = <|
+    "version" -> "TLS 1.2",
+    "random" -> RandomInteger[10^9],
+    "cipher_suites" -> {"AES256-GCM", "CHACHA20-POLY1305"},
+    "compression" -> "None"
+  |>;
+  Print["1. Client Hello: ", clientHello["cipher_suites"]];
+  (* Шаг 2: Server Hello *)
+  serverHello = <|
+    "version" -> "TLS 1.2",
+    "random" -> RandomInteger[10^9],
+    "cipher_suite" -> "AES256-GCM",
+    "compression" -> "None"
+  |>;
+  Print["2. Server Hello: ", serverHello["cipher_suite"]];
+  (* Шаг 3: Certificate *)
+  certificate = <|
+    "subject" -> "server.example.com",
+    "issuer" -> "CA Root",
+    "public_key" -> "RSA-2048",
+    "signature" -> "SHA256withRSA"
+  |>;
+  Print["3. Certificate: ", certificate["subject"]];
+  (* Шаг 4: Key Exchange *)
+  keyExchange = <|
+    "pre_master_secret" -> RandomInteger[10^9],
+    "encrypted" -> "RSA-OAEP"
+  |>;
+  Print["4. Key Exchange: Pre-master secret обменен"];
+  (* Шаг 5: Finished *)
+  finished = <|
+    "verify_data" -> HMAC["handshake_messages", "master_secret", MD5]
+  |>;
+  Print["5. Finished: Handshake завершен"];
+  <|
+    "client_hello" -> clientHello,
+    "server_hello" -> serverHello,
+    "certificate" -> certificate,
+    "key_exchange" -> keyExchange,
+    "finished" -> finished
+  |>
+]
+
+VerifyCertificateChain[certificate_, caBundle_] := Module[
+  {verified = False, issuer},
+  issuer = certificate["issuer"];
+  If[MemberQ[caBundle, issuer],
+    Print["Сертификат верифицирован: ", certificate["subject"]];
+    verified = True,
+    Print["Ошибка верификации: неизвестный CA"]
+  ];
+  verified
+]
+
+Print["TLS Handshake демо:"];
+handshake = TLSHandshakeSimulation[];
+
+Print["\nВерификация цепочки сертификатов:"];
+caBundle = {"CA Root", "Intermediate CA"};
+cert = handshake["certificate"];
+VerifyCertificateChain[cert, caBundle];

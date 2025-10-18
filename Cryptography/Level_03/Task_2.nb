@@ -1,0 +1,24 @@
+(* HMAC и аутентификация *)
+
+HMAC[message_, key_, hashFunc_] := Module[
+  {blockSize = 64, opad = 92, ipad = 54, keyBytes, oKeyPad, iKeyPad},
+  keyBytes = PadRight[ToCharacterCode[key], blockSize, 0];
+  oKeyPad = BitXor[keyBytes, Table[opad, blockSize]];
+  iKeyPad = BitXor[keyBytes, Table[ipad, blockSize]];
+  hashFunc[FromCharacterCode[Join[oKeyPad, ToCharacterCode[hashFunc[FromCharacterCode[Join[iKeyPad, ToCharacterCode[message]]]]]]]]
+]
+
+VerifyFileIntegrity[filePath_, expectedHash_] := Module[
+  {content, fileHash},
+  content = Import[filePath, "Text"];
+  fileHash = MD5[content];
+  fileHash == expectedHash
+]
+
+CreateHMACSignature[data_, key_] := HMAC[data, key, MD5]
+
+Print["HMAC демо: ", BaseForm[HMAC["message", "key", MD5], 16]];
+testFile = "test_file.txt";
+Export[testFile, "Test content"];
+Print["Целостность файла: ", VerifyFileIntegrity[testFile, MD5["Test content"]]];
+Print["HMAC подпись: ", BaseForm[CreateHMACSignature["important data", "secret"], 16]];

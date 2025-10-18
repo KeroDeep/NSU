@@ -1,0 +1,70 @@
+(* Криптографическая библиотека *)
+
+CryptoLibrary := Module[
+  {version = "1.0", algorithms = {}},
+  RegisterAlgorithm[name_, func_] := (
+    AppendTo[algorithms, name -> func];
+    Print["Алгоритм зарегистрирован: ", name]
+  ),
+  ListAlgorithms[] := Keys[algorithms],
+  KeyManager[] := Module[
+    {keys = <||>},
+    <|
+      "GenerateKey" -> Function[type,
+        key = Switch[type,
+          "RSA", GenerateRSAKeys[128],
+          "ElGamal", $Failed, (* GenerateElGamalKeys отсутствует *)
+          "AES", RandomInteger[255, 16],
+          _, $Failed
+        ];
+        If[key =!= $Failed, keys[type] = key];
+        key
+      ],
+      "GetKey" -> Function[type,
+        If[KeyExistsQ[keys, type], keys[type], $Failed]
+      ],
+      "DeleteKey" -> Function[type,
+        KeyDropFrom[keys, type]
+      ]
+    |>
+  ],
+  PluginSystem[] := Module[
+    {plugins = <||>},
+    <|
+      "LoadPlugin" -> Function[{name, pluginFunc},
+        plugins[name] = pluginFunc;
+        Print["Плагин загружен: ", name]
+      ],
+      "ExecutePlugin" -> Function[{name, args},
+        If[KeyExistsQ[plugins, name], plugins[name] @@ args, $Failed]
+      ]
+    |>
+  ],
+  <|
+    "Version" -> version,
+    "RegisterAlgorithm" -> RegisterAlgorithm,
+    "ListAlgorithms" -> ListAlgorithms,
+    "KeyManager" -> KeyManager,
+    "PluginSystem" -> PluginSystem
+  |>
+]
+
+Print["Криптографическая библиотека версии ", CryptoLibrary["Version"]];
+
+(* Регистрация алгоритмов *)
+CryptoLibrary["RegisterAlgorithm"]["Caesar", CaesarCipher];
+CryptoLibrary["RegisterAlgorithm"]["RSA", GenerateRSAKeys];
+CryptoLibrary["RegisterAlgorithm"]["MD5", Hash[#, "MD5"] &]; (* MD5 заменён на Hash *)
+
+Print["Доступные алгоритмы: ", CryptoLibrary["ListAlgorithms"][]];
+
+(* Демонстрация менеджера ключей *)
+keyMgr = CryptoLibrary["KeyManager"][];
+rsaKey = keyMgr["GenerateKey"]["RSA"];
+Print["RSA ключ сгенерирован: ", rsaKey["public"][[1]] > 0];
+
+(* Демонстрация системы плагинов *)
+plugins = CryptoLibrary["PluginSystem"][];
+plugins["LoadPlugin"]["CustomHash", Hash[#, "MD5"] &];
+result = plugins["ExecutePlugin"]["CustomHash", {"Test"}];
+Print["Результат плагина: ", StringTake[ToString[BaseForm[result, 16]], 10]];

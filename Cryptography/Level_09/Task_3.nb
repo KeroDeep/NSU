@@ -1,0 +1,62 @@
+(* Криптография для IoT *)
+
+PRESENTSBox = {12, 5, 6, 11, 9, 0, 10, 13, 3, 14, 15, 8, 4, 7, 1, 2};
+PRESENTPermutation = {1, 17, 33, 49, 2, 18, 34, 50, 3, 19, 35, 51, 4, 20, 36, 52,
+                      5, 21, 37, 53, 6, 22, 38, 54, 7, 23, 39, 55, 8, 24, 40, 56,
+                      9, 25, 41, 57, 10, 26, 42, 58, 11, 27, 43, 59, 12, 28, 44, 60,
+                      13, 29, 45, 61, 14, 30, 46, 62, 15, 31, 47, 63, 16, 32, 48, 64};
+
+PRESENTLightweightCipher[block_, key_, rounds_] := Module[
+  {state = IntegerDigits[block, 2, 64], roundKey = IntegerDigits[key, 2, 80], i},
+  Do[
+    (* AddRoundKey *)
+    state = BitXor[state, Take[roundKey, 64]];
+    (* S-box layer *)
+    state = Map[FromDigits[PRESENTSBox[[#+1]], 2] &, Partition[state, 4]];
+    (* P-layer *)
+    state = state[[PRESENTPermutation]];
+    (* Key update *)
+    roundKey = RotateLeft[roundKey, 61];
+    roundKey[[1 ;; 4]] = FromDigits[PRESENTSBox[[FromDigits[roundKey[[1 ;; 4]], 2] + 1]], 2];
+    roundKey[[-5 ;; -1]] = BitXor[roundKey[[-5 ;; -1]], IntegerDigits[RoundCount, 2, 5]],
+    {RoundCount, rounds}
+  ];
+  FromDigits[state, 2]
+]
+
+EnergyEfficientProtocol[] := Module[
+  {},
+  Print["Энергоэффективные протоколы для IoT:"];
+  Print["1. Lightweight MAC (до 50% экономии энергии)"];
+  Print["2. Сонные режимы шифрования"];
+  Print["3. Асимметричная криптография только для установки сессии"];
+  Print["4. Агрегация данных перед шифрованием"];
+  Print["5. Адаптивная сложность на основе уровня заряда"]
+]
+
+SimulateIoTDevice[batteryLevel_] := Module[
+  {operations = 0, energyPerOp = 0.1},
+  While[batteryLevel > 0,
+    operations++;
+    batteryLevel -= energyPerOp;
+    If[RandomReal[] < 0.1, batteryLevel -= 1]; (* Периодические передачи *)
+  ];
+  <|
+    "total_operations" -> operations,
+    "battery_life" -> operations * energyPerOp
+  |>
+]
+
+Print["Легковесный шифр PRESENT:"];
+block = 123456789;
+key = 987654321;
+encrypted = PRESENTLightweightCipher[block, key, 8];
+Print["Шифрование: ", block, " -> ", encrypted];
+
+Print["\nЭнергоэффективные протоколы:"];
+EnergyEfficientProtocol[];
+
+Print["\nСимуляция IoT устройства:"];
+device = SimulateIoTDevice[100];
+Print["Всего операций: ", device["total_operations"]];
+Print["Срок службы батареи: ", device["battery_life"], " единиц энергии"];

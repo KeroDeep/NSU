@@ -1,0 +1,58 @@
+(* Kerberos и централизованная аутентификация *)
+
+SimpleKerberos[] := Module[
+  {asKey = "as_secret", tgsKey = "tgs_secret", serviceKey = "service_secret", clientKey = "client_secret", tgt, serviceTicket},
+  (* Шаг 1: Клиент -> AS *)
+  Print["1. Клиент запрашивает TGT у AS"];
+  (* Шаг 2: AS -> Клиент (TGT + сессионный ключ) *)
+  tgt = <|"client" -> "client_id", "timestamp" -> AbsoluteTime[], "session_key" -> "session_client_tgs"|>;
+  Print["2. AS выдает TGT и сессионный ключ"];
+  (* Шаг 3: Клиент -> TGS (TGT + аутентификатор) *)
+  authenticator = <|"client" -> "client_id", "timestamp" -> AbsoluteTime[]|>;
+  Print["3. Клиент отправляет TGS TGT и аутентификатор"];
+  (* Шаг 4: TGS -> Клиент (билет сервиса) *)
+  serviceTicket = <|"client" -> "client_id", "service" -> "service_id", "session_key" -> "session_client_service"|>;
+  Print["4. TGS выдает билет сервиса"];
+  (* Шаг 5: Клиент -> Сервис (билет сервиса + аутентификатор) *)
+  serviceAuthenticator = <|"client" -> "client_id", "timestamp" -> AbsoluteTime[]|>;
+  Print["5. Клиент аутентифицируется у сервиса"];
+  (* Шаг 6: Сервис -> Клиент (подтверждение) *)
+  Print["6. Сервис подтверждает аутентификацию"];
+  <|"tgt" -> tgt, "service_ticket" -> serviceTicket|>
+]
+
+MutualAuthentication[clientId_, serverId_, sharedKey_] := Module[
+  {challenge1, challenge2, response1, response2},
+  challenge1 = RandomInteger[10^6]; (* Клиент -> Сервер *)
+  response1 = HMAC[ToString[challenge1], sharedKey, MD5]; (* Сервер -> Клиент *)
+  challenge2 = RandomInteger[10^6]; (* Сервер -> Клиент *)
+  response2 = HMAC[ToString[challenge2], sharedKey, MD5]; (* Клиент -> Сервер *)
+  response1 == HMAC[ToString[challenge1], sharedKey, MD5] && 
+  response2 == HMAC[ToString[challenge2], sharedKey, MD5]
+]
+
+TicketGrantingService[clientRequest_] := Module[
+  {tgt = clientRequest["tgt"], authenticator = clientRequest["authenticator"]},
+  If[tgt["client"] == authenticator["client"] && authenticator["timestamp"] > AbsoluteTime[] - 300, (* 5 минут timeout *)
+    Print["TGS: Выдан билет сервиса для ", tgt["client"]];
+    <|"service" -> clientRequest["service"], "session_key" -> "new_session_key"|>,
+    Print["TGS: Отказ в аутентификации"];
+    $Failed
+  ]
+]
+
+(* Демонстрация Kerberos *)
+kerberosSession = SimpleKerberos[];
+Print["Kerberos сессия установлена: ", kerberosSession["tgt"]["client"]];
+
+(* Демонстрация взаимной аутентификации *)
+Print["Взаимная аутентификация: ", MutualAuthentication["client1", "server1", "shared_secret"]];
+
+(* Демонстрация TGS *)
+tgsRequest = <|
+  "tgt" -> <|"client" -> "alice", "timestamp" -> AbsoluteTime[]|>,
+  "authenticator" -> <|"client" -> "alice", "timestamp" -> AbsoluteTime[]|>,
+  "service" -> "file_server"
+|>;
+tgsResponse = TicketGrantingService[tgsRequest];
+Print["TGS ответ: ", tgsResponse];

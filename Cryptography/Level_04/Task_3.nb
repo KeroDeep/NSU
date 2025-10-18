@@ -1,0 +1,51 @@
+(* Криптография на эллиптических кривых *)
+
+EllipticCurveAdd[{x1_, y1_}, {x2_, y2_}, a_, b_, p_] := Module[
+  {lambda, x3, y3},
+  If[x1 == Infinity, Return[{x2, y2}]];
+  If[x2 == Infinity, Return[{x1, y1}]];
+  If[x1 == x2,
+    If[y1 != y2, Return[Infinity],
+      lambda = Mod[(3 * x1^2 + a) * PowerMod[2 * y1, -1, p], p]],
+    lambda = Mod[(y2 - y1) * PowerMod[x2 - x1, -1, p], p]
+  ];
+  x3 = Mod[lambda^2 - x1 - x2, p];
+  y3 = Mod[lambda * (x1 - x3) - y1, p];
+  {x3, y3}
+]
+
+EllipticCurveMultiply[k_, point_, a_, b_, p_] := Nest[EllipticCurveAdd[#, point, a, b, p] &, point, k - 1]
+
+GenerateECKeys[a_, b_, p_, G_] := Module[
+  {n, x, public},
+  n = p + 1 + 2 * Sqrt[p]; (* Примерный порядок группы *)
+  x = RandomInteger[{2, n - 1}];
+  public = EllipticCurveMultiply[x, G, a, b, p];
+  <|"public" -> public, "private" -> x|>
+]
+
+ECDH[keyA_, keyB_, G_, a_, b_, p_] := Module[
+  {sharedA, sharedB},
+  sharedA = EllipticCurveMultiply[keyB["private"], keyA["public"], a, b, p];
+  sharedB = EllipticCurveMultiply[keyA["private"], keyB["public"], a, b, p];
+  sharedA == sharedB
+]
+
+(* Пример: кривая y^2 = x^3 + 2x + 3 mod 97 *)
+a = 2;
+b = 3;
+p = 97;
+G = {17, 10};
+
+key1 = GenerateECKeys[a, b, p, G];
+key2 = GenerateECKeys[a, b, p, G];
+Print["ECC ключи сгенерированы"];
+Print["Общий секрет установлен: ", ECDH[key1, key2, G, a, b, p]];
+
+(* Визуализация точек кривой *)
+curvePoints = Table[
+  {x, y} /. Solve[Mod[y^2 - (x^3 + a * x + b), p] == 0, y, Modulus -> p],
+  {x, 0, p - 1}
+];
+points = Flatten[curvePoints, 1];
+ListPlot[points, PlotStyle -> {Red, PointSize[0.02]}, PlotLabel -> "Точки эллиптической кривой"]

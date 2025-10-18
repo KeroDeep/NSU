@@ -1,0 +1,59 @@
+(* Биометрическая криптография *)
+
+FuzzyVault[template_, secret_, tolerance_] := Module[
+  {points = {}, polynomial, vault = {}, i},
+  (* Создание полинома из секрета *)
+  polynomial = Prepend[secret, RandomInteger[100, 3]]; (* Случайные коэффициенты *)
+  (* Добавление точек полинома *)
+  Do[
+    AppendTo[points, {x, Sum[polynomial[[i]] * x^(i - 1), {i, Length[polynomial]}]}],
+    {x, 1, Length[template] + 5}
+  ];
+  (* Добавление случайных точек (шумы) *)
+  Do[
+    AppendTo[points, {RandomInteger[100], RandomInteger[100]}],
+    {i, Length[template] * 2}
+  ];
+  RandomSample[points]
+]
+
+CancelableBiometrics[template_, transformKey_] := Module[
+  {transformed = {}, i},
+  Do[
+    AppendTo[transformed,
+      Mod[template[[i]] * Hash[transformKey <> ToString[i], "MD5"], 1000]],
+    {i, Length[template]}
+  ];
+  transformed
+]
+
+BiometricVerification[storedTemplate_, inputTemplate_, threshold_] := Module[
+  {distance, match},
+  distance = Norm[storedTemplate - inputTemplate];
+  match = distance < threshold;
+  <|
+    "distance" -> distance,
+    "match" -> match,
+    "threshold" -> threshold
+  |>
+]
+
+Print["Fuzzy Vault система:"];
+
+(* Пример биометрического шаблона *)
+biometricTemplate = {123, 456, 789, 234, 567};
+secretKey = {42, 17}; (* Секрет для защиты *)
+
+vault = FuzzyVault[biometricTemplate, secretKey, 50];
+Print["Fuzzy Vault создан с ", Length[vault], " точками"];
+
+Print["\nCancelable биометрия:"];
+transformKey = "user_specific_key";
+cancelable = CancelableBiometrics[biometricTemplate, transformKey];
+Print["Преобразованный шаблон: ", Take[cancelable, 3]];
+
+Print["\nВерификация биометрии:"];
+inputTemplate = {124, 455, 788, 235, 566}; (* Похожий шаблон *)
+verification = BiometricVerification[biometricTemplate, inputTemplate, 10];
+Print["Расстояние: ", verification["distance"]];
+Print["Совпадение: ", verification["match"]];

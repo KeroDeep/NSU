@@ -1,0 +1,57 @@
+(* Атаки на симметричные шифры *)
+
+BruteForceAttack[ciphertext_, knownPlaintext_] := Module[
+  {found = False, key = 0, decrypted},
+  Do[
+    decrypted = CaesarCipher[ciphertext, -shift];
+    If[StringContainsQ[decrypted, knownPlaintext],
+      found = True;
+      key = shift;
+      Break[]
+    ],
+    {shift, 1, 25}
+  ];
+  If[found,
+    <|"key" -> key, "plaintext" -> decrypted|>,
+    $Failed
+  ]
+]
+
+DifferentialCryptanalysis[plaintexts_, ciphertexts_] := Module[
+  {diffs = {}, inputDiff, outputDiff},
+  Do[
+    inputDiff = BitXor[plaintexts[[i]], plaintexts[[j]]];
+    outputDiff = BitXor[ciphertexts[[i]], ciphertexts[[j]]];
+    AppendTo[diffs, <|"input" -> inputDiff, "output" -> outputDiff|>],
+    {i, Length[plaintexts]},
+    {j, i + 1, Length[plaintexts]}
+  ];
+  diffs
+]
+
+LinearCryptanalysis[sBox_] := Module[
+  {linearApprox = Table[0, {16}, {16}], i, j, x, y},
+  Do[
+    i = Floor[x / 4];
+    j = Mod[x, 4];
+    y = sBox[[i + 1, j + 1]];
+    linearApprox[[BitAnd[x, 15] + 1, BitAnd[y, 15] + 1]]++,
+    {x, 0, 15}
+  ];
+  MatrixForm[linearApprox]
+]
+
+Print["Атака грубой силой на Цезарь:"];
+cipher = CaesarCipher["SECRET MESSAGE", 7];
+attack = BruteForceAttack[cipher, "SECRET"];
+Print["Найден ключ: ", attack["key"], ", текст: ", attack["plaintext"]];
+
+Print["\nДифференциальный криптоанализ:"];
+plainPairs = {65, 66, 67, 68};
+cipherPairs = ECBMode[plainPairs, 170];
+diffs = DifferentialCryptanalysis[plainPairs, cipherPairs];
+Print["Разности: ", Take[diffs, 3]];
+
+Print["\nЛинейный криптоанализ S-box:"];
+testSBox = {{14, 4, 13, 1}, {2, 15, 11, 8}, {3, 10, 6, 12}, {5, 9, 0, 7}};
+LinearCryptanalysis[testSBox]

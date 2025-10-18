@@ -1,0 +1,38 @@
+(* Математические основы *)
+
+ExtendedGCD[a_, b_] := If[b == 0, {a, 1, 0}, 
+  Module[{gcd, x, y}, 
+    {gcd, x, y} = ExtendedGCD[b, Mod[a, b]]; 
+    {gcd, y, x - Floor[a/b]*y}
+  ]
+]
+
+LegendreSymbol[a_, p_] := If[!PrimeQ[p], "p должно быть простым", 
+  Module[{r = PowerMod[a, (p-1)/2, p]}, 
+    If[r == p-1, -1, r]
+  ]
+]
+
+FermatTest[n_, k_: 10] := Module[{isPrime = True}, 
+  If[n < 2, Return[False]];
+  If[n == 2, Return[True]];
+  If[EvenQ[n], Return[False]];
+  Do[
+    If[PowerMod[RandomInteger[{2, n-2}], n-1, n] != 1, isPrime = False; Break[]], 
+    {k}
+  ];
+  isPrime
+]
+
+PrimeDistribution[limit_] := Module[{primes = Select[Range[limit], PrimeQ]}, 
+  ListPlot[primes, PlotStyle -> {Red, PointSize[0.01]}, PlotLabel -> "Простые числа"]
+]
+
+ModularInverse[a_, m_] := PowerMod[a, -1, m]
+
+Print["НОД(48,18): ", ExtendedGCD[48, 18]];
+Print["Лежандр(3,11): ", LegendreSymbol[3, 11]];
+Print["Ферма тест(17): ", FermatTest[17]];
+Print["Обратный элемент 3 mod 11: ", ModularInverse[3, 11]];
+
+Plot[{PowerMod[2, x, 17], PowerMod[3, x, 17]}, {x, 0, 16}, PlotLegends -> {"2^x mod 17", "3^x mod 17"}]

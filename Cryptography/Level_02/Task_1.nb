@@ -1,0 +1,40 @@
+(* Блочные шифры *)
+
+SimpleDES[block_, key_, encrypt_: True] := Module[
+  {ip = {2, 6, 3, 1, 4, 8, 5, 7}, ep = {4, 1, 2, 3, 2, 3, 4, 1},
+   p4 = {2, 4, 3, 1}, s0 = {{1, 0, 3, 2}, {3, 2, 1, 0}, {0, 2, 1, 3}, {3, 1, 3, 2}},
+   s1 = {{0, 1, 2, 3}, {2, 0, 1, 3}, {3, 0, 1, 0}, {2, 1, 0, 3}}, left, right, temp},
+  block = IntegerDigits[block, 2, 8];
+  key = IntegerDigits[key, 2, 8];
+  block = block[[ip]];
+  {left, right} = {block[[1 ;; 4]], block[[5 ;; 8]]};
+  temp = right;
+  right = BitXor[left, FFunction[right, key, s0, s1, ep, p4]];
+  left = temp;
+  FromDigits[Join[left, right][[InversePermutation[ip]]], 2]
+]
+
+FFunction[half_, key_, s0_, s1_, ep_, p4_] := Module[
+  {expanded, xored, s0row, s0col, s1row, s1col, s0out, s1out},
+  expanded = half[[ep]];
+  xored = BitXor[expanded, key[[1 ;; 8]]];
+  {s0row, s0col} = {FromDigits[xored[[{1, 4}]], 2], FromDigits[xored[[{2, 3}]], 2]};
+  {s1row, s1col} = {FromDigits[xored[[{5, 8}]], 2], FromDigits[xored[[{6, 7}]], 2]};
+  s0out = IntegerDigits[s0[[s0row + 1, s0col + 1]], 2, 2];
+  s1out = IntegerDigits[s1[[s1row + 1, s1col + 1]], 2, 2];
+  Join[s0out, s1out][[p4]]
+]
+
+ECBMode[data_, key_, encrypt_: True] := Map[SimpleDES[#, key, encrypt] &, data]
+
+CBCMode[data_, key_, iv_, encrypt_: True] := Module[{result = {}, prev = iv},
+  If[encrypt,
+    Do[prev = SimpleDES[BitXor[d, prev], key, True]; AppendTo[result, prev], {d, data}],
+    Do[AppendTo[result, BitXor[SimpleDES[d, key, False], prev]]; prev = d, {d, data}]
+  ];
+  result
+]
+
+Print["Простой DES: ", SimpleDES[42, 170, True]];
+Print["ECB режим: ", ECBMode[{65, 66, 67}, 170]];
+Print["CBC режим: ", CBCMode[{65, 66, 67}, 170, 0]];

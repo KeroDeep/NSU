@@ -1,0 +1,82 @@
+(* Blockchain и криптовалюты *)
+
+SimpleBlockchain[] := Module[
+  {chain = {}, difficulty = 4, target = 10^difficulty},
+  CreateBlock[data_, previousHash_] := Module[
+    {block = <|
+      "index" -> Length[chain] + 1,
+      "timestamp" -> AbsoluteTime[],
+      "data" -> data,
+      "previousHash" -> previousHash,
+      "nonce" -> 0,
+      "hash" -> ""
+    |>},
+    While[True,
+      block["hash"] = Hash[ToString[block], "MD5"];
+      If[FromDigits[StringTake[block["hash"], difficulty], 16] < target,
+        Return[block]
+      ];
+      block["nonce"]++;
+    ]
+  ],
+  AddBlock[data_] := Module[
+    {previousHash = If[Length[chain] > 0, Last[chain]["hash"], "0"]},
+    newBlock = CreateBlock[data, previousHash];
+    AppendTo[chain, newBlock];
+    newBlock
+  ],
+  ValidateChain[] := Module[
+    {valid = True, i},
+    Do[
+      If[chain[[i]]["previousHash"] != If[i > 1, chain[[i - 1]]["hash"], "0"] ||
+         chain[[i]]["hash"] != Hash[ToString[<|KeyDrop[chain[[i]], "hash"]|>], "MD5"],
+        valid = False;
+        Break[]
+      ],
+      {i, Length[chain]}
+    ];
+    valid
+  ],
+  <|
+    "AddBlock" -> AddBlock,
+    "ValidateChain" -> ValidateChain,
+    "GetChain" -> Function[chain]
+  |>
+]
+
+ProofOfWork[data_, difficulty_] := Module[
+  {nonce = 0, target = 10^difficulty, hash},
+  While[True,
+    hash = Hash[data <> ToString[nonce], "MD5"];
+    If[FromDigits[StringTake[hash, difficulty], 16] < target,
+      Return[<|"nonce" -> nonce, "hash" -> hash|>]
+    ];
+    nonce++;
+  ]
+]
+
+MerkleTree[transactions_] := Module[
+  {hashes, tree = {}},
+  hashes = Hash[#, "MD5"] & /@ transactions;
+  tree = Append[tree, hashes];
+  While[Length[hashes] > 1,
+    hashes = Map[Hash[StringJoin[#], "MD5"] &, Partition[hashes, 2, 2, 1, ""]];
+    tree = Append[tree, hashes]
+  ];
+  tree
+]
+
+Print["Блокчейн демо:"];
+blockchain = SimpleBlockchain[];
+blockchain["AddBlock"]["Transaction 1"];
+blockchain["AddBlock"]["Transaction 2"];
+Print["Цепочка валидна: ", blockchain["ValidateChain"][]];
+
+Print["\nProof of Work:"];
+pow = ProofOfWork["block data", 3];
+Print["Найден nonce: ", pow["nonce"], " с хешем: ", StringTake[pow["hash"], 10]];
+
+Print["\nMerkle Tree для транзакций:"];
+txs = {"tx1", "tx2", "tx3", "tx4"};
+merkle = MerkleTree[txs];
+Print["Корень Меркле: ", Last[merkle][[1]]];

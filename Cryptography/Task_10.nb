@@ -1,7 +1,0 @@
-(* Пример атаки на шифр Цезаря с использованием анализа частоты *)
-CaesarAttack[text_] := 
-  Module[{freq, maxShift, shiftedText},
-   freq = Tally[ToLowerCase[text]];
-   maxShift = First[freq][[1]];
-   shiftedText = CaesarDecrypt[text, maxShift];
-   shiftedText];

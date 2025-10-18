@@ -1,5 +1,0 @@
-(* Пример аутентификации с использованием RSA *)
-Authenticate[msg_, publicKey_, privateKey_] := 
-  Module[{signature},
-   signature = DigitalSignature[msg, privateKey];
-   VerifySignature[msg, signature, publicKey]];

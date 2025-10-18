@@ -1,0 +1,51 @@
+(* Атаки на асимметричные системы *)
+
+PollardRho[n_] := Module[
+  {x = 2, y = 2, d = 1, f = Function[z, Mod[z^2 + 1, n]]},
+  While[d == 1,
+    x = f[x];
+    y = f[f[y]];
+    d = GCD[Abs[x - y], n]
+  ];
+  If[d == n, $Failed, d]
+]
+
+SmallModulusAttack[publicKeys_] := Module[
+  {n1, n2, e, commonFactor},
+  {n1, e} = publicKeys[[1]];
+  {n2, e} = publicKeys[[2]];
+  commonFactor = GCD[n1, n2];
+  If[commonFactor > 1,
+    <|"factor" -> commonFactor, "p" -> commonFactor, "q" -> n1 / commonFactor|>,
+    $Failed
+  ]
+]
+
+ECDSANonceReuseAttack[r_, s1_, s2_, h1_, h2_, n_] := Module[
+  {k, d},
+  k = Mod[(h1 - h2) * PowerMod[s1 - s2, -1, n], n];
+  d = Mod[(s1 * k - h1) * PowerMod[r, -1, n], n];
+  d
+]
+
+Print["Атака Полларда:"];
+composite = 8051;
+factor = PollardRho[composite];
+Print["Множитель ", composite, ": ", factor];
+
+Print["\nАтака на малый модуль RSA:"];
+keys1 = GenerateRSAKeys[32];
+keys2 = GenerateRSAKeys[32];
+attack = SmallModulusAttack[{keys1["public"], keys2["public"]}];
+If[attack =!= $Failed, Print["Найден общий множитель: ", attack["factor"]]];
+
+Print["\nАтака на повторное использование nonce в ECDSA:"];
+(* Пример параметров *)
+r = 123;
+s1 = 456;
+s2 = 789;
+h1 = 111;
+h2 = 222;
+n = 997;
+privateKey = ECDSANonceReuseAttack[r, s1, s2, h1, h2, n];
+Print["Восстановленный приватный ключ: ", privateKey];

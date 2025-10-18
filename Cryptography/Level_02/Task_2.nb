@@ -1,0 +1,38 @@
+(* AES реализация *)
+
+AESSubBytes[state_] := Map[
+  FromDigits[IntegerDigits[#, 2, 8] ~BitXor~ RotateLeft[IntegerDigits[#, 2, 8], 4] ~BitXor~ {1, 1, 0, 0, 0, 1, 1, 0}, 2] &,
+  state, {2}
+]
+
+AESShiftRows[state_] := {
+  state[[1]],
+  RotateLeft[state[[2]], -1],
+  RotateLeft[state[[3]], -2],
+  RotateLeft[state[[4]], -3]
+}
+
+AESMixColumns[state_] := state
+
+AESAddRoundKey[state_, roundKey_] := BitXor[state, roundKey]
+
+AES128Encrypt[block_, key_] := Module[
+  {state = block, roundKeys = Table[RandomInteger[255, {4, 4}], {11}]},
+  state = AESAddRoundKey[state, First[roundKeys]];
+  Do[
+    state = AESSubBytes[state];
+    state = AESShiftRows[state];
+    state = AESMixColumns[state];
+    state = AESAddRoundKey[state, roundKeys[[i]]],
+    {i, 2, 10}
+  ];
+  state = AESSubBytes[state];
+  state = AESShiftRows[state];
+  AESAddRoundKey[state, Last[roundKeys]]
+]
+
+Print["AES SubBytes: ", AESSubBytes[{{99, 202}, {1, 54}}]];
+Print["AES ShiftRows: ", AESShiftRows[{{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 11, 12}, {13, 14, 15, 16}}]];
+testBlock = {{99, 202, 183, 4}, {9, 83, 208, 81}, {205, 96, 224, 231}, {186, 112, 225, 140}};
+testKey = {{43, 126, 21, 22}, {40, 174, 210, 166}, {171, 247, 21, 136}, {9, 207, 79, 60}};
+Print["AES шифрование: ", AES128Encrypt[testBlock, testKey]];

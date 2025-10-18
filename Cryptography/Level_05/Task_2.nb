@@ -1,0 +1,40 @@
+(* Системы аутентификации *)
+
+ChallengeResponse[clientKey_, serverKey_] := Module[
+  {challenge, response, verified},
+  challenge = RandomInteger[10^6]; (* Сервер отправляет вызов *)
+  response = HMAC[ToString[challenge], clientKey, MD5]; (* Клиент отвечает *)
+  verified = HMAC[ToString[challenge], serverKey, MD5]; (* Сервер проверяет *)
+  response == verified
+]
+
+TOTP[key_, timeStep_: 30] := Module[
+  {time, message, hash},
+  time = Quotient[AbsoluteTime[], timeStep];
+  message = IntegerString[time, 16];
+  hash = HMAC[message, key, MD5];
+  Mod[FromDigits[Take[IntegerDigits[hash, 10], -6], 10], 10^6]
+]
+
+PublicKeyAuth[message_, privateKey_, publicKey_] := Module[
+  {signature, verified},
+  signature = RSASign[message, privateKey];
+  verified = RSAVerify[message, signature, publicKey];
+  verified
+]
+
+(* Демонстрация Challenge-Response *)
+sharedKey = "secret_key";
+Print["Challenge-Response: ", ChallengeResponse[sharedKey, sharedKey]];
+
+(* Демонстрация TOTP *)
+Print["TOTP код: ", TOTP["totp_secret"]];
+Print["Проверка TOTP: ", TOTP["totp_secret"] == TOTP["totp_secret"]];
+
+(* Демонстрация аутентификации по открытому ключу *)
+rsaKeys = GenerateRSAKeys[128];
+authMessage = "Authenticate this session";
+Print["Аутентификация по открытому ключу: ", PublicKeyAuth[authMessage, rsaKeys["private"], rsaKeys["public"]]];
+
+(* Симуляция атаки *)
+Print["Атака с неверным ключом: ", ChallengeResponse["wrong_key", sharedKey]];

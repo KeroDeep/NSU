@@ -1,0 +1,59 @@
+(* Гомоморфное шифрование *)
+
+PaillierEncrypt[m_, n_, g_] := Module[
+  {r = RandomInteger[{1, n - 1}]},
+  Mod[PowerMod[g, m, n^2] * PowerMod[r, n, n^2], n^2]
+]
+
+PaillierDecrypt[c_, lambda_, mu_, n_] := Module[
+  {l},
+  l = Mod[PowerMod[c, lambda, n^2] - 1, n^2] / n;
+  Mod[l * mu, n]
+]
+
+HomomorphicAddition[c1_, c2_, n_] := Mod[c1 * c2, n^2]
+
+HomomorphicMultiplication[c_, k_, n_] := PowerMod[c, k, n^2]
+
+GeneratePaillierKeys[bitLength_] := Module[
+  {p, q, n, g, lambda, mu},
+  p = NextPrime[RandomInteger[{2^(bitLength/2 - 1), 2^(bitLength/2)}]];
+  q = NextPrime[RandomInteger[{2^(bitLength/2 - 1), 2^(bitLength/2)}]];
+  n = p * q;
+  g = n + 1;
+  lambda = LCM[p - 1, q - 1];
+  mu = PowerMod[Mod[PowerMod[g, lambda, n^2] - 1, n^2] / n, -1, n];
+  <|
+    "public" -> {n, g},
+    "private" -> {lambda, mu},
+    "n" -> n
+  |>
+]
+
+Print["Гомоморфное шифрование Paillier:"];
+
+(* Генерация ключей *)
+keys = GeneratePaillierKeys[32];
+{n, g} = keys["public"];
+{lambda, mu} = keys["private"];
+
+(* Шифрование двух чисел *)
+m1 = 15;
+m2 = 25;
+c1 = PaillierEncrypt[m1, n, g];
+c2 = PaillierEncrypt[m2, n, g];
+
+(* Гомоморфное сложение *)
+c_sum = HomomorphicAddition[c1, c2, n];
+decrypted_sum = PaillierDecrypt[c_sum, lambda, mu, n];
+
+(* Гомоморфное умножение на константу *)
+k = 3;
+c_mult = HomomorphicMultiplication[c1, k, n];
+decrypted_mult = PaillierDecrypt[c_mult, lambda, mu, n];
+
+Print["Исходные: ", m1, " + ", m2, " = ", m1 + m2];
+Print["Зашифрованная сумма: ", decrypted_sum];
+Print[m1, " * ", k, " = ", m1 * k];
+Print["Зашифрованное умножение: ", decrypted_mult];
+Print["Корректность: ", decrypted_sum == m1 + m2 && decrypted_mult == m1 * k];

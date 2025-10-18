@@ -1,0 +1,207 @@
+(* Образовательная платформа *)
+
+CryptoEducationPlatform[] := Module[
+  {students = <||>, courses = <||>, progress = <||>},
+  RegisterStudent[studentId_, name_] := (
+    students[studentId] = <|"name" -> name, "registration_date" -> DateString[]|>;
+    progress[studentId] = <||>;
+    Print["Студент зарегистрирован: ", name]
+  ),
+  CreateCourse[courseId_, title_, lessons_] := (
+    courses[courseId] = <|
+      "title" -> title,
+      "lessons" -> lessons,
+      "total_lessons" -> Length[lessons]
+    |>;
+    Print["Курс создан: ", title]
+  ),
+  InteractiveCipherDemo[cipherType_] := Module[
+    {demo},
+    demo = Switch[cipherType,
+      "Caesar",
+        Manipulate[
+          Column[{
+            Style["Шифр Цезаря", Bold, 16],
+            "Исходный текст: " <> text,
+            "Зашифрованный: " <> CaesarCipher[text, shift],
+            "Дешифрованный: " <> CaesarCipher[CaesarCipher[text, shift], -shift]
+          }],
+          {{text, "HELLO WORLD", "Текст"}, InputField[String, FieldSize -> {20, 1}]},
+          {{shift, 3, "Сдвиг"}, -10, 10, 1}
+        ],
+      "Vigenere",
+        Manipulate[
+          Column[{
+            Style["Шифр Виженера", Bold, 16],
+            "Текст: " <> text,
+            "Ключ: " <> key,
+            "Зашифрованный: " <> "Vigenere not implemented",
+            "Дешифрованный: " <> "Vigenere not implemented"
+          }],
+          {{text, "ATTACK AT DAWN", "Текст"}, InputField[String, FieldSize -> {20, 1}]},
+          {{key, "KEY", "Ключ"}, InputField[String, FieldSize -> {10, 1}]}
+        ],
+      "RSA",
+        DynamicModule[
+          {keys = GenerateRSAKeys[64], message = "TEST", cipher, decrypted},
+          Column[{
+            Style["RSA Демонстрация", Bold, 16],
+            "Сообщение: " <> message,
+            Button["Зашифровать",
+              cipher = RSAEncrypt[message, keys["public"]];
+              decrypted = RSADecrypt[cipher, keys["private"]]
+            ],
+            Dynamic[If[ValueQ[cipher],
+              Column[{
+                "Шифротекст: " <> ToString[First[cipher]],
+                "Дешифрованный: " <> decrypted
+              }], ""]
+            ]
+          }]
+        ],
+      _, "Unknown cipher type"
+    ];
+    demo
+  ],
+  AutoGradeAssignment[submission_, solution_] := Module[
+    {score = 0, maxScore = 10, feedback = {}},
+    (* Проверка корректности реализации *)
+    If[submission["encrypt"]["TEST"] == solution["encrypt"]["TEST"], score += 3];
+    If[submission["decrypt"][submission["encrypt"]["TEST"]] == "TEST", score += 4];
+    If[submission["key_generation"][] =!= $Failed, score += 3];
+    (* Обратная связь *)
+    If[score < maxScore,
+      AppendTo[feedback, "Проверьте корректность дешифрования"]];
+    If[score == maxScore,
+      AppendTo[feedback, "Отличная работа! Все тесты пройдены."]];
+    <|
+      "score" -> score,
+      "max_score" -> maxScore,
+      "feedback" -> feedback
+    |>
+  ],
+  ProgressTracking[studentId_] := Module[
+    {studentProgress = progress[studentId], completionRate, chart},
+    If[KeyExistsQ[studentProgress, "courses"],
+      completionRate = N[Count[studentProgress["courses"], _?(#["completed"] &)] / Length[studentProgress["courses"]] * 100];
+      chart = {
+        ```chartjs
+        {
+          "type": "bar",
+          "data": {
+            "labels": Table["Урок " <> ToString[i], {i, Length[studentProgress["courses"]]}],
+            "datasets": [{
+              "data": Table[If[studentProgress["courses"][[i]]["completed"], 1, 0.3], {i, Length[studentProgress["courses"]]}],
+              "backgroundColor": Table[If[studentProgress["courses"][[i]]["completed"], "#00FF00", "#FF0000"], {i, Length[studentProgress["courses"]]}]
+            }]
+          },
+          "options": {
+            "scales": {
+              "y": {"beginAtZero": true, "max": 1}
+            },
+            "plugins": {
+              "title": {"display": true, "text": "Прогресс обучения: " + ToString[Round[completionRate]] + "%"}
+            }
+          }
+        }
+        ```
+      },
+      <|
+        "completion_rate" -> 0,
+        "progress_chart" -> {
+          ```chartjs
+          {
+            "type": "bar",
+            "data": {
+              "labels": ["Нет данных"],
+              "datasets": [{
+                "data": [0],
+                "backgroundColor": ["#808080"]
+              }]
+            },
+            "options": {
+              "plugins": {
+                "title": {"display": true, "text": "Нет данных о прогрессе"}
+              }
+            }
+          }
+          ```
+        }
+      |>
+    ]
+  ],
+  AttackSimulator[algorithm_] := Module[
+    {simulation},
+    simulation = Switch[algorithm,
+      "Caesar",
+        Module[{cipher = CaesarCipher["SECRET MESSAGE", 7]},
+          Column[{
+            Style["Атака на шифр Цезаря", Bold, 16],
+            "Зашифрованное сообщение: " <> cipher,
+            "Атака грубой силой: " <> "BruteForceAttack not implemented"
+          }]
+        ],
+      "RSA",
+        Module[{keys = GenerateRSAKeys[32], cipher},
+          cipher = RSAEncrypt["A", keys["public"]];
+          Column[{
+            Style["Атака на RSA", Bold, 16],
+            "Время выполнения операций: " <> "TimingAttackRSA not implemented"
+          }]
+        ],
+      _, "Unknown algorithm"
+    ];
+    simulation
+  ],
+  <|
+    "RegisterStudent" -> RegisterStudent,
+    "CreateCourse" -> CreateCourse,
+    "InteractiveDemo" -> InteractiveCipherDemo,
+    "AutoGrade" -> AutoGradeAssignment,
+    "TrackProgress" -> ProgressTracking,
+    "AttackSimulator" -> AttackSimulator
+  |>
+]
+
+Print["=== Образовательная платформа по криптографии ===\n"];
+
+platform = CryptoEducationPlatform[];
+
+(* Регистрация студентов *)
+platform["RegisterStudent"]["S001", "Анна Иванова"];
+platform["RegisterStudent"]["S002", "Петр Сидоров"];
+
+(* Создание курсов *)
+cryptoLessons = {
+  "Введение в криптографию",
+  "Классические шифры",
+  "Симметричное шифрование",
+  "Асимметричная криптография",
+  "Хеш-функции и подписи"
+};
+platform["CreateCourse"]["CRYPTO101", "Основы криптографии", cryptoLessons];
+
+Print["\nИнтерактивная демонстрация шифров:"];
+platform["InteractiveDemo"]["Caesar"];
+
+Print["\nАвтопроверка задания:"];
+testSolution = <|
+  "encrypt" -> Function[CaesarCipher[#, 3]],
+  "decrypt" -> Function[CaesarCipher[#, -3]],
+  "key_generation" -> Function[3]
+|>;
+testSubmission = <|
+  "encrypt" -> Function[CaesarCipher[#, 3]],
+  "decrypt" -> Function[CaesarCipher[#, -3]],
+  "key_generation" -> Function[3]
+|>;
+grade = platform["AutoGrade"][testSubmission, testSolution];
+Print["Оценка задания: ", grade["score"], "/", grade["max_score"]];
+Print["Обратная связь: ", grade["feedback"]];
+
+Print["\nСимулятор атак:"];
+platform["AttackSimulator"]["Caesar"];
+
+Print["\nОтслеживание прогресса:"];
+progress = platform["TrackProgress"]["S001"];
+progress["progress_chart"]

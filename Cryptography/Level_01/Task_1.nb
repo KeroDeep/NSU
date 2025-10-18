@@ -1,0 +1,66 @@
+(* Классические шифры *)
+
+CaesarCipher[text_String, shift_Integer] := Module[{result = "", char, base},
+  Do[
+    char = StringTake[text, {i}];
+    If[LetterQ[char],
+      base = If[UpperCaseQ[char], 65, 97];
+      char = FromCharacterCode[Mod[ToCharacterCode[char][[1]] - base + shift, 26] + base]
+    ];
+    result = result <> char,
+    {i, StringLength[text]}
+  ];
+  result
+]
+
+VigenereCipher[text_String, key_String, encrypt_: True] := Module[{result = "", keyIndex = 1, char, base, shift, direction = If[encrypt, 1, -1]},
+  key = ToUpperCase[key];
+  Do[
+    char = StringTake[text, {i}];
+    If[LetterQ[char],
+      base = If[UpperCaseQ[char], 65, 97];
+      shift = ToCharacterCode[StringTake[key, {keyIndex}]][[1]] - 65;
+      char = FromCharacterCode[Mod[ToCharacterCode[char][[1]] - base + direction * shift, 26] + base];
+      keyIndex = Mod[keyIndex, StringLength[key]] + 1
+    ];
+    result = result <> char,
+    {i, StringLength[text]}
+  ];
+  result
+]
+
+AtbashCipher[text_String] := Module[{result = "", char, base},
+  Do[
+    char = StringTake[text, {i}];
+    If[LetterQ[char],
+      base = If[UpperCaseQ[char], 65, 97];
+      char = FromCharacterCode[2 * base + 25 - ToCharacterCode[char][[1]]]
+    ];
+    result = result <> char,
+    {i, StringLength[text]}
+  ];
+  result
+]
+
+VisualizeEncryption[text_String, shift_Integer] := Module[{original = Characters[text], encrypted = Characters[CaesarCipher[text, shift]]},
+  Grid[
+    Prepend[
+      Table[
+        {original[[i]], ToCharacterCode[original[[i]]][[1]], ToCharacterCode[encrypted[[i]]][[1]], encrypted[[i]]},
+        {i, Length[original]}
+      ],
+      {"Символ", "Код", "Сдвинутый", "Результат"}
+    ],
+    Frame -> All
+  ]
+]
+
+FrequencyAnalysis[text_String] := Module[{chars = Select[Characters[ToUpperCase[text]], LetterQ], total, freq},
+  total = Length[chars];
+  freq = Reverse[SortBy[Table[char -> Count[chars, char]/total * 100, {char, CharacterRange["A", "Z"]}], Last]];
+  BarChart[freq[[All, 2]], ChartLabels -> freq[[All, 1]], PlotLabel -> "Частотный анализ (%)"]
+]
+
+Print["Шифр Цезаря: ", CaesarCipher["HELLO WORLD", 3]];
+Print["Шифр Виженера: ", VigenereCipher["ATTACK AT DAWN", "KEY"]];
+Print["Шифр Атбаш: ", AtbashCipher["CRYPTOGRAPHY"]];

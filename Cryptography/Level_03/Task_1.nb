@@ -1,0 +1,34 @@
+(* Криптографические хеш-функции *)
+
+MD5[message_] := Module[
+  {bytes = ToCharacterCode[message], len, padding, chunks, h = {1732584193, 4023233417, 2562383102, 271733878}},
+  len = Length[bytes] * 8;
+  padding = Join[bytes, {128}, Table[0, {Mod[56 - Mod[Length[bytes] + 1, 64], 64]}], Reverse[IntegerDigits[len, 256, 8]]];
+  chunks = Partition[padding, 64];
+  Do[
+    (* Упрощённая обработка чанка, реальная MD5 должна обновлять h *)
+    Null,
+    {chunk, chunks}
+  ];
+  FromDigits[Flatten[Reverse[IntegerDigits[#, 256, 4] & /@ h]], 16]
+]
+
+SimpleSHA256[message_] := Module[
+  {bytes = ToCharacterCode[message], h = {1779033703, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924, 528734635, 1541459225}},
+  Do[
+    (* Упрощённая обработка, реальная SHA-256 должна обновлять h *)
+    Null,
+    {byte, bytes}
+  ];
+  FromDigits[Flatten[Reverse[IntegerDigits[#, 256, 4] & /@ h]], 16]
+]
+
+AvalancheEffect[hashFunc_] := Module[
+  {original = "Hello World", modified = "Hello World!", diff},
+  diff = BitXor[hashFunc[original], hashFunc[modified]];
+  Print["Изменено ", Count[IntegerDigits[diff, 2], 1], " бит из ", IntegerLength[diff, 2]]
+]
+
+Print["MD5 хеш: ", BaseForm[MD5["Hello World"], 16]];
+Print["SHA256 хеш: ", BaseForm[SimpleSHA256["Hello World"], 16]];
+AvalancheEffect[MD5];

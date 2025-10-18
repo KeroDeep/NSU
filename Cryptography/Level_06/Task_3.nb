@@ -1,0 +1,47 @@
+(* Side-channel атаки *)
+
+TimingAttackRSA[ciphertext_, privateKey_] := Module[
+  {n, d, bits, times = {}, result = 1},
+  {n, d} = privateKey;
+  bits = IntegerDigits[d, 2];
+  Do[
+    start = AbsoluteTime[];
+    result = Mod[result^2, n];
+    If[bit == 1, result = Mod[result * ciphertext, n]];
+    AppendTo[times, AbsoluteTime[] - start],
+    {bit, bits}
+  ];
+  times
+]
+
+SimplePowerAnalysis[operations_] := Module[
+  {powerTrace = {}, power},
+  Do[
+    power = Length[IntegerDigits[op, 2]]; (* Упрощенная модель мощности *)
+    AppendTo[powerTrace, power],
+    {op, operations}
+  ];
+  ListPlot[powerTrace, PlotLabel -> "Профиль потребления мощности"]
+]
+
+Countermeasures[] := Module[
+  {},
+  Print["1. Добавление случайных задержек"];
+  Print["2. Выравнивание времени выполнения"];
+  Print["3. Маскирование данных"];
+  Print["4. Слепая подпись"];
+  Print["5. Аппаратная защита"]
+]
+
+Print["Тайминг атака на RSA:"];
+testKeys = GenerateRSAKeys[64];
+cipher = RSAEncrypt["A", testKeys["public"]];
+timings = TimingAttackRSA[cipher[[1]], testKeys["private"]];
+Print["Временные измерения: ", Take[timings, 5]];
+
+Print["\nПростой анализ мощности:"];
+ops = Table[RandomInteger[10^6], {50}];
+SimplePowerAnalysis[ops];
+
+Print["\nКонтрмеры против side-channel атак:"];
+Countermeasures[];

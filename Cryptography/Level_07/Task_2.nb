@@ -1,0 +1,64 @@
+(* PGP и защита почты *)
+
+PGPKeyServer[] := Module[
+  {keys = <||>},
+  <|
+    "UploadKey" -> Function[{userId, publicKey},
+      keys[userId] = publicKey;
+      Print["Ключ загружен: ", userId]
+    ],
+    "GetKey" -> Function[userId,
+      If[KeyExistsQ[keys, userId],
+        keys[userId],
+        $Failed
+      ]
+    ],
+    "SearchKeys" -> Function[pattern,
+      Select[Keys[keys], StringContainsQ[#, pattern] &]
+    ]
+  |>
+]
+
+PGPEncryptMessage[message_, recipientKey_, senderPrivateKey_] := Module[
+  {sessionKey, encryptedMessage, signature},
+  sessionKey = RandomInteger[10^9];
+  encryptedMessage = <|
+    "session_key" -> RSAEncrypt[ToString[sessionKey], recipientKey],
+    "message" -> CaesarCipher[message, Mod[sessionKey, 26]],
+    "signature" -> RSASign[message, senderPrivateKey]
+  |>;
+  encryptedMessage
+]
+
+WebOfTrust[userId_, depth_] := Module[
+  {trusted = {}, currentLevel = {userId}, nextLevel, contacts},
+  Do[
+    nextLevel = {};
+    Do[
+      trusted = Union[trusted, currentLevel];
+      (* Симуляция доверенных контактов *)
+      contacts = Table["user_" <> ToString[RandomInteger[100]], {RandomInteger[5] + 1}];
+      nextLevel = Union[nextLevel, contacts],
+      {user, currentLevel}
+    ];
+    currentLevel = Complement[nextLevel, trusted],
+    {depth}
+  ];
+  trusted
+]
+
+Print["PGP Key Server демо:"];
+keyServer = PGPKeyServer[];
+keyServer["UploadKey"]["alice@domain.com", GenerateRSAKeys[64]["public"]];
+keyServer["UploadKey"]["bob@domain.com", GenerateRSAKeys[64]["public"]];
+Print["Поиск ключей: ", keyServer["SearchKeys"]["alice"]];
+
+Print["\nPGP шифрование сообщения:"];
+aliceKeys = GenerateRSAKeys[64];
+bobKeys = GenerateRSAKeys[64];
+encrypted = PGPEncryptMessage["Hello Bob!", bobKeys["public"], aliceKeys["private"]];
+Print["Зашифрованное сообщение: ", Keys[encrypted]];
+
+Print["\nWeb of Trust:"];
+trustNetwork = WebOfTrust["alice", 2];
+Print["Доверенные контакты Алисы: ", trustNetwork];

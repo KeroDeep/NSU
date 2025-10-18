@@ -1,0 +1,25 @@
+(* Генерация случайных последовательностей *)
+
+LCG[seed_, a_, c_, m_, n_] := NestList[Mod[a*# + c, m] &, seed, n-1]
+
+LFSR[seed_, taps_, n_] := Module[{state = seed, result = {}},
+  Do[
+    AppendTo[result, First[state]];
+    state = Append[Rest[state], Mod[Total[state[[taps]]], 2]],
+    {n}
+  ];
+  result
+]
+
+CryptoRandomSequence[length_] := RandomInteger[{0, 255}, length]
+
+StatisticalTests[sequence_] := Module[{data = If[Max[sequence] <= 1, sequence, sequence/255.0]},
+  Print["Среднее: ", Mean[data]];
+  Print["Дисперсия: ", Variance[data]];
+  Print["Энтропия: ", -Total[#*Log2[#]& /@ (Values[Counts[sequence]]/Length[sequence])]];
+  Histogram[sequence, PlotLabel -> "Распределение"]
+]
+
+Print["LCG: ", Take[LCG[123, 1103515245, 12345, 2^31, 10], 5]];
+Print["LFSR: ", Take[LFSR[{1, 0, 0, 1, 0, 1, 1}, {1, 3, 6}, 10], 5]];
+StatisticalTests[CryptoRandomSequence[1000]]

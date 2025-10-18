@@ -1,0 +1,45 @@
+(* RSA криптосистема *)
+
+GenerateRSAKeys[bitLength_] := Module[
+  {p, q, n, phi, e, d},
+  p = NextPrime[RandomInteger[{2^(bitLength/2 - 1), 2^(bitLength/2)}]];
+  q = NextPrime[RandomInteger[{2^(bitLength/2 - 1), 2^(bitLength/2)}]];
+  n = p * q;
+  phi = (p - 1) * (q - 1);
+  e = 65537;
+  d = PowerMod[e, -1, phi];
+  <|"public" -> {n, e}, "private" -> {n, d}, "primes" -> {p, q}|>
+]
+
+RSAEncrypt[message_, publicKey_] := Module[
+  {n, e},
+  {n, e} = publicKey;
+  PowerMod[ToCharacterCode[message], e, n]
+]
+
+RSADecrypt[ciphertext_, privateKey_] := Module[
+  {n, d},
+  {n, d} = privateKey;
+  FromCharacterCode[PowerMod[ciphertext, d, n]]
+]
+
+RSASign[message_, privateKey_] := Module[
+  {n, d},
+  {n, d} = privateKey;
+  PowerMod[Hash[message, "MD5"], d, n]
+]
+
+RSAVerify[message_, signature_, publicKey_] := Module[
+  {n, e},
+  {n, e} = publicKey;
+  Hash[message, "MD5"] == PowerMod[signature, e, n]
+]
+
+keys = GenerateRSAKeys[128];
+Print["RSA ключи сгенерированы: n = ", keys["public"][[1]]];
+testMessage = "Hello RSA";
+ciphertext = RSAEncrypt[testMessage, keys["public"]];
+decrypted = RSADecrypt[ciphertext, keys["private"]];
+Print["Шифрование: ", testMessage, " -> ", ciphertext, " -> ", decrypted];
+signature = RSASign[testMessage, keys["private"]];
+Print["Подпись верифицирована: ", RSAVerify[testMessage, signature, keys["public"]]];

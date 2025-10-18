@@ -1,0 +1,60 @@
+(* Криптография в базах данных *)
+
+EncryptedDatabase[] := Module[
+  {data = <||>, columnKeys = <||>},
+  AddEncryptedRecord[table_, record_, key_] := Module[
+    {encryptedRecord = <||>},
+    Do[
+      encryptedRecord[col] = If[StringQ[record[col]],
+        CaesarCipher[record[col], Mod[Hash[key <> col, "MD5"], 26]],
+        record[col] + Hash[key <> col, "MD5"]
+      ],
+      {col, Keys[record]}
+    ];
+    If[!KeyExistsQ[data, table], data[table] = {}];
+    data[table] = Append[data[table], encryptedRecord];
+    encryptedRecord
+  ],
+  SearchEncrypted[table_, column_, value_, key_] := Module[
+    {encryptedValue, results = {}},
+    encryptedValue = If[StringQ[value],
+      CaesarCipher[value, Mod[Hash[key <> column, "MD5"], 26]],
+      value + Hash[key <> column, "MD5"]
+    ];
+    Select[data[table], #[column] == encryptedValue &]
+  ],
+  <|
+    "AddRecord" -> AddEncryptedRecord,
+    "Search" -> SearchEncrypted,
+    "GetData" -> Function[data]
+  |>
+]
+
+DeterministicEncryption[value_, key_] := 
+  Hash[ToString[value] <> key, "MD5"]
+
+Print["Зашифрованная база данных:"];
+
+db = EncryptedDatabase[];
+key = "database_secret_key";
+
+(* Добавление записей *)
+record1 = <|"name" -> "Alice", "age" -> 30, "salary" -> 50000|>;
+record2 = <|"name" -> "Bob", "age" -> 25, "salary" -> 45000|>;
+
+enc1 = db["AddRecord"]["employees", record1, key];
+enc2 = db["AddRecord"]["employees", record2, key];
+
+Print["Зашифрованные записи:"];
+Print["Алиса: ", enc1];
+Print["Боб: ", enc2];
+
+(* Поиск по зашифрованным данным *)
+results = db["Search"]["employees", "name", "Alice", key];
+Print["Результаты поиска 'Alice': ", Length[results]];
+
+Print["\nДетерминированное шифрование для индексов:"];
+index1 = DeterministicEncryption["Alice", "index_key"];
+index2 = DeterministicEncryption["Bob", "index_key"];
+Print["Индекс Alice: ", StringTake[index1, 8]];
+Print["Индекс Bob: ", StringTake[index2, 8]];

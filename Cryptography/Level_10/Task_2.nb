@@ -1,0 +1,192 @@
+(* Аудит безопасности *)
+
+SecurityScanner[] := Module[
+  {vulnerabilities = {}},
+  ScanWeakPasswords[system_] := Module[
+    {commonPasswords = {"123456", "password", "12345678", "qwerty", "abc123"}, found = {}},
+    Do[
+      If[MemberQ[system["users"], user -> pass],
+        AppendTo[found, user -> "Weak password"]],
+      {user, Keys[system["users"]]},
+      {pass, commonPasswords}
+    ];
+    found
+  ],
+  ScanCryptoVulnerabilities[config_] := Module[
+    {issues = {}},
+    If[config["rsa_key_size"] < 2048,
+      AppendTo[issues, "RSA key too small: " <> ToString[config["rsa_key_size"]]]];
+    If[config["hash_algorithm"] == "MD5",
+      AppendTo[issues, "Weak hash algorithm: MD5"]];
+    If[!config["encryption_enabled"],
+      AppendTo[issues, "Encryption not enabled"]];
+    issues
+  ],
+  ComplianceCheck[system_, standard_] := Module[
+    {checks = {}, passed = 0, total = 0},
+    (* NIST SP 800-53 checks *)
+    If[standard == "NIST",
+      If[system["password_policy"]["min_length"] >= 8, passed++];
+      total++;
+      If[system["encryption"]["algorithm"] == "AES-256", passed++];
+      total++;
+      If[system["key_rotation"]["enabled"], passed++];
+      total++
+    ];
+    <|
+      "standard" -> standard,
+      "passed" -> passed,
+      "total" -> total,
+      "compliance_rate" -> If[total > 0, N[passed/total * 100], 0]
+    |>
+  ],
+  PenetrationTest[target_] := Module[
+    {results = <||>},
+    (* Port scanning simulation *)
+    results["open_ports"] = RandomSample[Range[1, 65535], RandomInteger[{1, 10}]];
+    (* Vulnerability assessment *)
+    results["vulnerabilities"] = {
+      "Weak SSL/TLS configuration",
+      "Outdated software versions",
+      "Missing security patches"
+    };
+    (* Security score *)
+    results["security_score"] = Max[0, 100 - Length[results["vulnerabilities"]] * 10];
+    results
+  ],
+  GenerateSecurityReport[system_] := Module[
+    {report = <||>, riskFactors},
+    report["weak_passwords"] = ScanWeakPasswords[system];
+    report["crypto_issues"] = ScanCryptoVulnerabilities[system["crypto_config"]];
+    report["compliance"] = ComplianceCheck[system, "NIST"];
+    report["pen_test"] = PenetrationTest[system["network"]];
+    (* Overall risk assessment *)
+    riskFactors = Length[report["weak_passwords"]] +
+                  Length[report["crypto_issues"]] +
+                  Length[report["pen_test"]["vulnerabilities"]];
+    report["risk_level"] = Which[
+      riskFactors == 0, "Low",
+      riskFactors <= 3, "Medium",
+      riskFactors <= 6, "High",
+      True, "Critical"
+    ];
+    report
+  ],
+  <|
+    "ScanWeakPasswords" -> ScanWeakPasswords,
+    "ScanCryptoVulnerabilities" -> ScanCryptoVulnerabilities,
+    "ComplianceCheck" -> ComplianceCheck,
+    "PenetrationTest" -> PenetrationTest,
+    "GenerateSecurityReport" -> GenerateSecurityReport
+  |>
+]
+
+VisualizeSecurityResults[report_] := Module[
+  {riskGauge, complianceChart, vulnChart},
+  (* Risk level gauge *)
+  riskGauge = {
+    ```chartjs
+    {
+      "type": "doughnut",
+      "data": {
+        "labels": ["Risk Level"],
+        "datasets": [{
+          "data": [1],
+          "backgroundColor": [
+            switch[report["risk_level"],
+              "Low", "#00FF00",
+              "Medium", "#FFFF00",
+              "High", "#FFA500",
+              "Critical", "#FF0000"
+            ]
+          ]
+        }]
+      },
+      "options": {
+        "plugins": {
+          "title": {"display": true, "text": "Risk Level: " + report["risk_level"]}
+        }
+      }
+    }
+    ```
+  };
+  (* Compliance rate *)
+  complianceChart = {
+    ```chartjs
+    {
+      "type": "bar",
+      "data": {
+        "labels": ["Compliance Rate (%)"],
+        "datasets": [{
+          "data": [report["compliance"]["compliance_rate"]],
+          "backgroundColor": ["#ADD8E6"]
+        }]
+      },
+      "options": {
+        "scales": {
+          "y": {"beginAtZero": true, "max": 100}
+        },
+        "plugins": {
+          "title": {"display": true, "text": "Compliance Rate"}
+        }
+      }
+    }
+    ```
+  };
+  (* Vulnerabilities by category *)
+  vulnChart = {
+    ```chartjs
+    {
+      "type": "bar",
+      "data": {
+        "labels": ["Weak Auth", "Crypto Issues", "Network Vulns"],
+        "datasets": [{
+          "data": [
+            Length[report["weak_passwords"]],
+            Length[report["crypto_issues"]],
+            Length[report["pen_test"]["vulnerabilities"]]
+          ],
+          "backgroundColor": ["#FF6347", "#4682B4", "#FFD700"]
+        }]
+      },
+      "options": {
+        "scales": {
+          "y": {"beginAtZero": true}
+        },
+        "plugins": {
+          "title": {"display": true, "text": "Vulnerabilities by Category"}
+        }
+      }
+    }
+    ```
+  };
+  {riskGauge, complianceChart, vulnChart}
+]
+
+Print["Сканер безопасности запущен..."];
+
+scanner = SecurityScanner[];
+
+(* Тестовая система для аудита *)
+testSystem = <|
+  "users" -> <|"admin" -> "123456", "user1" -> "Password123!", "guest" -> "guest"|>,
+  "crypto_config" -> <|
+    "rsa_key_size" -> 1024,
+    "hash_algorithm" -> "MD5",
+    "encryption_enabled" -> True
+  |>,
+  "password_policy" -> <|"min_length" -> 6, "complexity" -> False|>,
+  "encryption" -> <|"algorithm" -> "AES-128", "mode" -> "CBC"|>,
+  "key_rotation" -> <|"enabled" -> False, "period" -> 0|>,
+  "network" -> <|"host" -> "192.168.1.1", "services" -> {"HTTP", "SSH"}|>
+|>;
+
+Print["\nАудит тестовой системы:"];
+securityReport = scanner["GenerateSecurityReport"][testSystem];
+
+Print["Слабые пароли: ", securityReport["weak_passwords"]];
+Print["Проблемы криптографии: ", securityReport["crypto_issues"]];
+Print["Уровень риска: ", securityReport["risk_level"]];
+
+Print["\nВизуализация результатов аудита:"];
+VisualizeSecurityResults[securityReport];

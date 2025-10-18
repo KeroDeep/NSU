@@ -1,0 +1,35 @@
+(* Цифровые отпечатки и идентификация *)
+
+FileFingerprint[filePath_] := Module[
+  {content = Import[filePath, "Text"]},
+  MD5[content]
+]
+
+FindDuplicateFiles[directory_] := Module[
+  {files = FileNames["*", directory], hashes, duplicates},
+  hashes = FileFingerprint /@ files;
+  duplicates = GatherBy[Transpose[{files, hashes}], Last];
+  Select[duplicates, Length[#] > 1 &]
+]
+
+MerkleTree[data_] := Module[
+  {hashes, tree = {}},
+  hashes = MD5 /@ data;
+  tree = Append[tree, hashes];
+  While[
+    Length[hashes] > 1,
+    hashes = Map[MD5[StringJoin[#]] &, Partition[hashes, 2, 2, 1, ""]];
+    tree = Append[tree, hashes]
+  ];
+  tree
+]
+
+VisualizeMerkleTree[tree_] := TreeGraph[
+  Flatten[Table[Thread[tree[[i]] -> tree[[i + 1]]], {i, Length[tree] - 1}]],
+  VertexLabels -> "Name"
+]
+
+Print["Отпечаток файла: ", BaseForm[FileFingerprint["./test_file.txt"], 16]];
+testData = {"data1", "data2", "data3", "data4"};
+merkleTree = MerkleTree[testData];
+Print["Корень Меркле: ", BaseForm[Last[merkleTree][[1]], 16]];

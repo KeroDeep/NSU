@@ -1,0 +1,79 @@
+(* Квантовая криптография *)
+
+BB84Protocol[] := Module[
+  {aliceBits = {}, aliceBases = {}, bobBases = {}, bobMeasurements = {}, key = {}},
+  (* Алиса генерирует случайные биты и базисы *)
+  aliceBits = RandomInteger[1, 100];
+  aliceBases = RandomInteger[1, 100];
+  (* Боб выбирает случайные базисы для измерения *)
+  bobBases = RandomInteger[1, 100];
+  (* Симуляция измерений - совпадение только при одинаковых базисах *)
+  bobMeasurements = Table[
+    If[aliceBases[[i]] == bobBases[[i]], aliceBits[[i]], RandomInteger[1]],
+    {i, 100}
+  ];
+  (* Сравнение базисов и извлечение ключа *)
+  key = Table[
+    If[aliceBases[[i]] == bobBases[[i]], aliceBits[[i]], Nothing],
+    {i, 100}
+  ];
+  <|
+    "alice_bits" -> aliceBits,
+    "alice_bases" -> aliceBases,
+    "bob_bases" -> bobBases,
+    "bob_measurements" -> bobMeasurements,
+    "shared_key" -> key,
+    "key_length" -> Length[key]
+  |>
+]
+
+LatticeBasedCrypto[] := Module[
+  {},
+  Print["Lattice-based криптография использует:"];
+  Print["1. Learning With Errors (LWE)"];
+  Print["2. Ring-LWE"];
+  Print["3. NTRU алгоритм"];
+  Print["Стойкость к квантовым атакам"];
+  (* Упрощенная демонстрация *)
+  n = 4; (* Размерность решетки *)
+  q = 17; (* Модуль *)
+  A = RandomInteger[{0, q - 1}, {n, n}]; (* Публичная матрица *)
+  s = RandomInteger[{0, q - 1}, n]; (* Секретный вектор *)
+  e = RandomInteger[{-1, 1}, n]; (* Ошибка *)
+  b = Mod[A.s + e, q]; (* Публичный вектор *)
+  <|
+    "public_matrix" -> A,
+    "public_vector" -> b,
+    "secret" -> s
+  |>
+]
+
+CodeBasedCrypto[] := Module[
+  {generatorMatrix, message, codeword, error, received},
+  (* Упрощенный код Гоппы *)
+  generatorMatrix = {{1, 0, 0, 1, 1, 0, 1},
+                    {0, 1, 0, 1, 0, 1, 1},
+                    {0, 0, 1, 0, 1, 1, 1}};
+  message = {1, 0, 1};
+  codeword = Mod[message.generatorMatrix, 2];
+  error = {0, 0, 0, 1, 0, 0, 0}; (* Одна ошибка *)
+  received = Mod[codeword + error, 2];
+  <|
+    "generator" -> generatorMatrix,
+    "message" -> message,
+    "codeword" -> codeword,
+    "received" -> received
+  |>
+]
+
+Print["BB84 Protocol демо:"];
+bb84 = BB84Protocol[];
+Print["Длина общего ключа: ", bb84["key_length"]];
+
+Print["\nLattice-based криптография:"];
+lattice = LatticeBasedCrypto[];
+Print["Публичный вектор: ", lattice["public_vector"]];
+
+Print["\nCode-based криптография:"];
+code = CodeBasedCrypto[];
+Print["Полученное сообщение с ошибкой: ", code["received"]];

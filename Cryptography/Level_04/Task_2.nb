@@ -1,0 +1,57 @@
+(* Криптосистема Эль-Гамаля *)
+
+GenerateElGamalKeys[bitLength_] := Module[
+  {p, g, x, y},
+  p = NextPrime[RandomInteger[{2^(bitLength - 1), 2^bitLength}]];
+  g = PrimitiveRoot[p];
+  x = RandomInteger[{2, p - 2}];
+  y = PowerMod[g, x, p];
+  <|"public" -> {p, g, y}, "private" -> x|>
+]
+
+ElGamalEncrypt[message_, publicKey_] := Module[
+  {p, g, y, m, k, a, b},
+  {p, g, y} = publicKey;
+  m = ToCharacterCode[message];
+  k = RandomInteger[{2, p - 2}];
+  a = PowerMod[g, k, p];
+  b = Mod[PowerMod[y, k, p] * m, p];
+  {a, b}
+]
+
+ElGamalDecrypt[ciphertext_, privateKey_, publicKey_] := Module[
+  {p, g, y, x, a, b},
+  {p, g, y} = publicKey;
+  x = privateKey;
+  {a, b} = ciphertext;
+  FromCharacterCode[Mod[b * PowerMod[a, p - 1 - x, p], p]]
+]
+
+ElGamalSign[message_, privateKey_, publicKey_] := Module[
+  {p, g, y, x, m, k, r, s},
+  {p, g, y} = publicKey;
+  x = privateKey;
+  m = Hash[message, "MD5"];
+  k = RandomInteger[{2, p - 2}];
+  While[GCD[k, p - 1] != 1, k = RandomInteger[{2, p - 2}]];
+  r = PowerMod[g, k, p];
+  s = Mod[(m - x * r) * PowerMod[k, -1, p - 1], p - 1];
+  {r, s}
+]
+
+ElGamalVerify[message_, signature_, publicKey_] := Module[
+  {p, g, y, r, s, m},
+  {p, g, y} = publicKey;
+  {r, s} = signature;
+  m = Hash[message, "MD5"];
+  Mod[PowerMod[y, r, p] * PowerMod[r, s, p], p] == PowerMod[g, m, p]
+]
+
+keys = GenerateElGamalKeys[64];
+Print["Эль-Гамаль ключи: p = ", keys["public"][[1]]];
+testMessage = "Test Message";
+ciphertext = ElGamalEncrypt[testMessage, keys["public"]];
+decrypted = ElGamalDecrypt[ciphertext, keys["private"], keys["public"]];
+Print["Шифрование: ", testMessage, " -> ", decrypted];
+signature = ElGamalSign[testMessage, keys["private"], keys["public"]];
+Print["Подпись верифицирована: ", ElGamalVerify[testMessage, signature, keys["public"]]];

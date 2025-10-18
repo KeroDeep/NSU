@@ -1,0 +1,44 @@
+(* Поточные шифры *)
+
+RC4[key_] := Module[
+  {S = Range[0, 255], keyBytes, i = 0, j = 0, keyStream = {}},
+  keyBytes = ToCharacterCode[key];
+  Do[
+    j = Mod[j + S[[i + 1]] + keyBytes[[Mod[i, Length[keyBytes]] + 1]], 256];
+    {S[[i + 1]], S[[j + 1]]} = {S[[j + 1]], S[[i + 1]]},
+    {i, 0, 255}
+  ];
+  Function[message,
+    Module[{i = 0, j = 0},
+      Table[
+        i = Mod[i + 1, 256];
+        j = Mod[j + S[[i + 1]], 256];
+        {S[[i + 1]], S[[j + 1]]} = {S[[j + 1]], S[[i + 1]]};
+        BitXor[byte, S[[Mod[S[[i + 1]] + S[[j + 1]], 256] + 1]]],
+        {byte, ToCharacterCode[message]}
+      ]
+    ]
+  ]
+]
+
+SelfSyncStreamCipher[message_, key_, iv_] := Module[
+  {state = iv, result = {}},
+  Do[
+    AppendTo[result, BitXor[byte, Last[state]]];
+    state = Append[Rest[state], Mod[byte * key, 256]],
+    {byte, ToCharacterCode[message]}
+  ];
+  FromCharacterCode[result]
+]
+
+StatisticalAnalysis[stream_] := Module[{},
+  Print["Распределение: ", Histogram[stream, Automatic, "Probability", PlotLabel -> "Распределение"]];
+  Print["Автокорреляция: ", ListPlot[
+    Table[Correlation[stream, RotateLeft[stream, i]], {i, 0, 10}],
+    PlotLabel -> "Автокорреляция", Joined -> True, PlotMarkers -> Automatic
+  ]]
+]
+
+Print["RC4 демо: ", FromCharacterCode[RC4["Key"]["Hello World!"]]];
+Print["Самосинхр. шифр: ", SelfSyncStreamCipher["Test", 13, {1, 2, 3}]];
+StatisticalAnalysis[ToCharacterCode[SelfSyncStreamCipher["Test", 13, {1, 2, 3}]]]
