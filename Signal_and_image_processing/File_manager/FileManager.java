@@ -7,7 +7,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
 
-public class FileManager extends AbstractTableModel implements MouseListener, FocusListener, KeyListener {
+public class FileManager extends AbstractTableModel implements MouseListener, FocusListener, KeyListener, MouseMotionListener {
     private File currentDir;
     private JFrame fileManagerFrame;
     private JTable fileTable;
@@ -27,6 +27,10 @@ public class FileManager extends AbstractTableModel implements MouseListener, Fo
 
     private static final Set<String> IMAGE_EXTENSIONS = Set.of("jpg", "jpeg", "png", "gif", "bmp", "tiff", "raw");
     private static final Set<String> VIDEO_EXTENSIONS = Set.of("mp4", "avi", "mov", "mkv", "wmv", "flv", "webm");
+
+    private boolean isDragging = false;
+    private Point dragStartPoint;
+    private Rectangle selectionRect = new Rectangle();
 
     public FileManager() {
         this.currentDir = new File(System.getProperty("user.dir"));
@@ -78,6 +82,7 @@ public class FileManager extends AbstractTableModel implements MouseListener, Fo
         JButton deleteButton = createToolbarButton("Delete", "Delete selected", event -> deleteSelected());
         JButton launchButton = createToolbarButton("Launch", "Launch selected files", event -> launchSelected());
         JButton forwardButton = createToolbarButton("Folder->", "Open folder", event -> openSelectedFolder());
+        JButton selectAllButton = createToolbarButton("Select All", "Select all files", event -> selectAllFiles());
 
         toolBar.add(upButton);
         toolBar.add(homeButton);
@@ -88,6 +93,7 @@ public class FileManager extends AbstractTableModel implements MouseListener, Fo
         toolBar.add(deleteButton);
         toolBar.addSeparator();
         toolBar.add(launchButton);
+        toolBar.add(selectAllButton);
         toolBar.addSeparator();
 
         toolBar.add(new JLabel("File types: "));
@@ -114,6 +120,7 @@ public class FileManager extends AbstractTableModel implements MouseListener, Fo
         button.setToolTipText(tooltip);
         button.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         button.addActionListener(listener);
+        
         return button;
     }
 
@@ -130,10 +137,12 @@ public class FileManager extends AbstractTableModel implements MouseListener, Fo
         columnModel.getColumn(3).setPreferredWidth(150);
 
         fileTable.addMouseListener(this);
+        fileTable.addMouseMotionListener(this);
         fileTable.addKeyListener(this);
         
         JScrollPane scrollPane = new JScrollPane(fileTable);
         scrollPane.addMouseListener(this);
+        scrollPane.addMouseMotionListener(this);
         fileManagerFrame.add(scrollPane, BorderLayout.CENTER);
     }
 
@@ -210,6 +219,7 @@ public class FileManager extends AbstractTableModel implements MouseListener, Fo
     private boolean isClickOnEmptySpace(MouseEvent event) {
         Point p = event.getPoint();
         int row = fileTable.rowAtPoint(p);
+
         return row == -1;
     }
 
@@ -218,12 +228,60 @@ public class FileManager extends AbstractTableModel implements MouseListener, Fo
         if (event.isPopupTrigger()) {
             showPopup(event);
         }
+        else if (event.getButton() == MouseEvent.BUTTON1) {
+            Point p = event.getPoint();
+            int row = fileTable.rowAtPoint(p);
+            
+            if (row == -1) {
+                isDragging = true;
+                dragStartPoint = p;
+                selectionRect.setBounds(p.x, p.y, 0, 0);
+                fileTable.clearSelection();
+            }
+            else {
+                if (!event.isControlDown()) {
+                    fileTable.clearSelection();
+                }
+                fileTable.addRowSelectionInterval(row, row);
+            }
+        }
     }
 
     @Override
     public void mouseReleased(MouseEvent event) {
         if (event.isPopupTrigger()) {
             showPopup(event);
+        }
+        else if (event.getButton() == MouseEvent.BUTTON1 && isDragging) {
+            isDragging = false;
+            updateSelectionFromRectangle();
+            selectionRect.setBounds(0, 0, 0, 0);
+        }
+    }
+
+    @Override
+    public void mouseDragged(MouseEvent event) {
+        if (isDragging) {
+            Point currentPoint = event.getPoint();
+            int x = Math.min(dragStartPoint.x, currentPoint.x);
+            int y = Math.min(dragStartPoint.y, currentPoint.y);
+            int width = Math.abs(currentPoint.x - dragStartPoint.x);
+            int height = Math.abs(currentPoint.y - dragStartPoint.y);
+            
+            selectionRect.setBounds(x, y, width, height);
+            updateSelectionFromRectangle();
+        }
+    }
+
+    @Override
+    public void mouseMoved(MouseEvent event) {}
+
+    private void updateSelectionFromRectangle() {
+        for (int i = 0; i < fileTable.getRowCount(); i++) {
+            Rectangle cellRect = fileTable.getCellRect(i, 0, false);
+            if (selectionRect.intersects(cellRect)) {
+                fileTable.addRowSelectionInterval(i, i);
+            }
         }
     }
 
@@ -239,6 +297,7 @@ public class FileManager extends AbstractTableModel implements MouseListener, Fo
 
         if (comp instanceof JTable || comp instanceof JScrollPane) {
             int row = fileTable.rowAtPoint(p);
+
             if (row >= 0) {
                 if (!fileTable.isRowSelected(row)) {
                     fileTable.setRowSelectionInterval(row, row);
@@ -357,6 +416,10 @@ public class FileManager extends AbstractTableModel implements MouseListener, Fo
         newFileItem.addActionListener(event_1 -> createNewFile());
         popup.add(newFileItem);
         
+        JMenuItem loadFolderItem = new JMenuItem("Load entire folder");
+        loadFolderItem.addActionListener(event_1 -> loadEntireFolder());
+        popup.add(loadFolderItem);
+        
         if (!undoStack.isEmpty()) {
             popup.addSeparator();
             JMenuItem undoItem = new JMenuItem("Cancel");
@@ -383,6 +446,9 @@ public class FileManager extends AbstractTableModel implements MouseListener, Fo
         else if ((event.getKeyCode() == KeyEvent.VK_Z) && ((event.getModifiersEx() & KeyEvent.CTRL_DOWN_MASK) != 0)) {
             undoLastOperation();
         }
+        else if ((event.getKeyCode() == KeyEvent.VK_A) && ((event.getModifiersEx() & KeyEvent.CTRL_DOWN_MASK) != 0)) {
+            selectAllFiles();
+        }
     }
 
     @Override
@@ -399,6 +465,7 @@ public class FileManager extends AbstractTableModel implements MouseListener, Fo
         }
 
         File[] files = currentDir.listFiles();
+
         if (files != null) {
             Arrays.sort(files, (f1, f2) -> {
                 if (f1.isDirectory() && !f2.isDirectory()) {
@@ -468,6 +535,7 @@ public class FileManager extends AbstractTableModel implements MouseListener, Fo
 
     private void openSelectedFolder() {
         int row = fileTable.getSelectedRow();
+
         if (row >= 0) {
             String name = (String) getValueAt(fileTable.convertRowIndexToModel(row), 0);
 
@@ -567,6 +635,7 @@ public class FileManager extends AbstractTableModel implements MouseListener, Fo
 
     private void launchSingleFile(String fileName) {
         File file = new File(currentDir, fileName);
+
         if (isMediaFile(file)) {
             if (imageSelectedListener != null) {
                 imageSelectedListener.accept(file.getAbsolutePath());
@@ -587,11 +656,14 @@ public class FileManager extends AbstractTableModel implements MouseListener, Fo
         }
 
         File[] files = currentDir.listFiles();
+
         if (files != null) {
             List<String> foundMedia = new ArrayList<>();
+
             for (File file : files) {
                 if (file.isFile()) {
                     String ext = getFileExtension(file.getName());
+
                     if (typesToOpen.contains(ext)) {
                         foundMedia.add(file.getAbsolutePath());
                     }
@@ -606,6 +678,7 @@ public class FileManager extends AbstractTableModel implements MouseListener, Fo
 
     private void createNewFolder() {
         String name = JOptionPane.showInputDialog(fileManagerFrame, "Enter folder name:");
+
         if (name != null && !name.trim().isEmpty()) {
             File newFolder = new File(currentDir, name.trim());
 
@@ -617,9 +690,11 @@ public class FileManager extends AbstractTableModel implements MouseListener, Fo
 
     private void createNewFile() {
         String name = JOptionPane.showInputDialog(fileManagerFrame, "Enter file name with extension:");
+
         if (name != null && !name.trim().isEmpty()) {
             try {
                 File newFile = new File(currentDir, name.trim());
+
                 if (newFile.createNewFile()) {
                     refreshFileList();
                 }
@@ -748,6 +823,31 @@ public class FileManager extends AbstractTableModel implements MouseListener, Fo
 
     private boolean hasSelectedMediaFiles() {
         return !getSelectedMediaFiles().isEmpty();
+    }
+
+    private void selectAllFiles() {
+        fileTable.selectAll();
+    }
+
+    private void loadEntireFolder() {
+        File[] files = currentDir.listFiles();
+
+        if (files != null) {
+            List<String> mediaFiles = new ArrayList<>();
+
+            for (File file : files) {
+                if (file.isFile() && isMediaFile(file)) {
+                    mediaFiles.add(file.getAbsolutePath());
+                }
+            }
+            
+            if (!mediaFiles.isEmpty()) {
+                notifyImagesSelected(mediaFiles.toArray(new String[0]));
+            }
+            else {
+                JOptionPane.showMessageDialog(fileManagerFrame, "No media files found in this folder", "Info", JOptionPane.INFORMATION_MESSAGE);
+            }
+        }
     }
 
     private void notifyFolderSelected() {
