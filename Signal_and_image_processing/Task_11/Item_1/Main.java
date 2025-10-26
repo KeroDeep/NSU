@@ -63,7 +63,7 @@ public class Main {
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
         JButton openBtn = new JButton("Open file manager");
-        JButton clearBtn = new JButton("Clear All");
+        JButton clearBtn = new JButton("Clear all");
         
         openBtn.addActionListener(event -> openFileManager());
         clearBtn.addActionListener(event -> clearAll());
@@ -88,8 +88,10 @@ public class Main {
             if (paths != null && paths.length > 0) {
                 if (paths.length != 2) {
                     JOptionPane.showMessageDialog(mainFrame, "Please select exactly 2 images", "Wrong number of images", JOptionPane.WARNING_MESSAGE);
+
                     return;
                 }
+
                 loadImages(paths);
             }
 
@@ -105,18 +107,20 @@ public class Main {
         for (String path : paths) {
             try {
                 File file = new File(path);
+
                 if (!file.exists()) {
                     continue;
                 }
                 
                 BufferedImage image = ImageIO.read(file);
+
                 if (image != null) {
                     originalImages.add(image);
                     imagePaths.add(path);
                 }
             }
-            catch (Exception event) {
-                event.printStackTrace();
+            catch (Exception exception) {
+                exception.printStackTrace();
             }
         }
     }
@@ -232,6 +236,7 @@ public class Main {
                 
                 for (MatOfDMatch knnMatch : knnMatches) {
                     DMatch[] matches = knnMatch.toArray();
+
                     if (matches.length >= 2) {
                         if (matches[0].distance < 0.7 * matches[1].distance) {
                             goodMatches.add(matches[0]);
@@ -243,8 +248,9 @@ public class Main {
                     goodMatches = filterWithHomography(keypoints1, keypoints2, goodMatches);
                 }
                 
-            } catch (Exception e) {
-                System.out.println("Matching error: " + e.getMessage());
+            }
+            catch (Exception exception) {
+                System.out.println("Matching error: " + exception.getMessage());
             }
         }
         
@@ -280,6 +286,7 @@ public class Main {
         Calib3d.findHomography(points1, points2, Calib3d.RANSAC, 5.0, mask);
         
         List<DMatch> inliers = new ArrayList<>();
+
         if (mask.rows() == matches.size()) {
             byte[] maskData = new byte[(int) mask.total()];
             mask.get(0, 0, maskData);
@@ -332,6 +339,7 @@ public class Main {
         }
         
         g2d.dispose();
+        
         return result;
     }
 

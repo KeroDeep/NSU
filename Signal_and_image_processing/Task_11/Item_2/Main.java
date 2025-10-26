@@ -63,7 +63,7 @@ public class Main {
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
         JButton openBtn = new JButton("Open file manager");
-        JButton clearBtn = new JButton("Clear All");
+        JButton clearBtn = new JButton("Clear all");
         
         openBtn.addActionListener(event -> openFileManager());
         clearBtn.addActionListener(event -> clearAll());
@@ -88,7 +88,7 @@ public class Main {
             if (paths != null && paths.length > 0) {
                 if (paths.length != 2) {
                     JOptionPane.showMessageDialog(mainFrame, "Please select exactly 2 images", "Wrong number of images", JOptionPane.WARNING_MESSAGE);
-
+                    
                     return;
                 }
 
@@ -167,12 +167,22 @@ public class Main {
         BufferedImage img1 = originalImages.get(0);
         BufferedImage img2 = originalImages.get(1);
         
-        Object[] result = matchFeatures(img1, img2);
-        BufferedImage img1WithMatches = (BufferedImage) result[0];
-        BufferedImage img2WithMatches = (BufferedImage) result[1];
-        int matchesCount = (Integer) result[2];
+        Object[] result1 = matchFeaturesMethod1(img1, img2);
+        Object[] result2 = matchFeaturesMethod2(img1, img2);
         
-        infoLabel.setText("Found " + matchesCount + " matching point pairs between images");
+        BufferedImage img1WithMatches1 = (BufferedImage) result1[0];
+        BufferedImage img2WithMatches1 = (BufferedImage) result1[1];
+        int matchesCount1 = (Integer) result1[2];
+        
+        BufferedImage img1WithMatches2 = (BufferedImage) result2[0];
+        BufferedImage img2WithMatches2 = (BufferedImage) result2[1];
+        int matchesCount2 = (Integer) result2[2];
+        
+        BufferedImage img1AllPoints = combinePoints(img1, img1WithMatches1, img1WithMatches2);
+        BufferedImage img2AllPoints = combinePoints(img2, img2WithMatches1, img2WithMatches2);
+        
+        int totalMatches = matchesCount1 + matchesCount2;
+        infoLabel.setText("Found " + totalMatches + " matching point pairs between images");
         
         Dimension panelSize = imagePanel.getSize();
         int cellWidth = panelSize.width / 2 - 20;
@@ -181,19 +191,35 @@ public class Main {
         
         BufferedImage scaledImg1 = scaleImageForDisplay(img1, imageSize);
         BufferedImage scaledImg2 = scaleImageForDisplay(img2, imageSize);
-        BufferedImage scaledImg1WithPoints = scaleImageForDisplay(img1WithMatches, imageSize);
-        BufferedImage scaledImg2WithPoints = scaleImageForDisplay(img2WithMatches, imageSize);
+        BufferedImage scaledImg1AllPoints = scaleImageForDisplay(img1AllPoints, imageSize);
+        BufferedImage scaledImg2AllPoints = scaleImageForDisplay(img2AllPoints, imageSize);
         
         addImageToPanel(scaledImg1, "Original image 1");
-        addImageToPanel(scaledImg1WithPoints, "Image 1 with matched points");
+        addImageToPanel(scaledImg1AllPoints, "Image 1 with all matched points");
         addImageToPanel(scaledImg2, "Original image 2");
-        addImageToPanel(scaledImg2WithPoints, "Image 2 with matched points");
+        addImageToPanel(scaledImg2AllPoints, "Image 2 with all matched points");
+    }
+    
+    private static BufferedImage combinePoints(BufferedImage original, BufferedImage img1, BufferedImage img2) {
+        BufferedImage result = new BufferedImage(original.getWidth(), original.getHeight(), BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = result.createGraphics();
+        g2d.drawImage(original, 0, 0, null);
+        
+        g2d.drawImage(img1, 0, 0, null);
+        g2d.drawImage(img2, 0, 0, null);
+        
+        g2d.dispose();
+
+        return result;
     }
     
     private static void addImageToPanel(BufferedImage image, String title) {
         JPanel container = new JPanel(new BorderLayout());
         container.setBackground(Color.WHITE);
-        container.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(Color.GRAY, 2), BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+        container.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(Color.GRAY, 2),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
         
         JLabel titleLabel = new JLabel(title, JLabel.CENTER);
         titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
@@ -206,18 +232,15 @@ public class Main {
         imagePanel.add(container);
     }
     
-    private static Object[] matchFeatures(BufferedImage img1, BufferedImage img2) {
+    private static Object[] matchFeaturesMethod1(BufferedImage img1, BufferedImage img2) {
         Mat mat1 = bufferedImageToMat(img1);
         Mat mat2 = bufferedImageToMat(img2);
         
-        Mat processed1 = preprocessImage(mat1);
-        Mat processed2 = preprocessImage(mat2);
-        
         Mat gray1 = new Mat(), gray2 = new Mat();
-        Imgproc.cvtColor(processed1, gray1, Imgproc.COLOR_BGR2GRAY);
-        Imgproc.cvtColor(processed2, gray2, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.cvtColor(mat1, gray1, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.cvtColor(mat2, gray2, Imgproc.COLOR_BGR2GRAY);
         
-        SIFT detector = SIFT.create(2000, 3, 0.03, 12, 1.6);
+        SIFT detector = SIFT.create();
         MatOfKeyPoint keypoints1 = new MatOfKeyPoint();
         MatOfKeyPoint keypoints2 = new MatOfKeyPoint();
         Mat descriptors1 = new Mat();
@@ -230,7 +253,7 @@ public class Main {
         List<MatOfDMatch> knnMatches = new ArrayList<>();
         List<DMatch> goodMatches = new ArrayList<>();
         
-        if (!descriptors1.empty() && !descriptors2.empty() && descriptors1.cols() == descriptors2.cols()) {
+        if (!descriptors1.empty() && !descriptors2.empty()) {
             try {
                 matcher.knnMatch(descriptors1, descriptors2, knnMatches, 2);
                 
@@ -238,13 +261,13 @@ public class Main {
                     DMatch[] matches = knnMatch.toArray();
 
                     if (matches.length >= 2) {
-                        if (matches[0].distance < 0.6 * matches[1].distance) {
+                        if (matches[0].distance < 0.7 * matches[1].distance) {
                             goodMatches.add(matches[0]);
                         }
                     }
                 }
                 
-                if (goodMatches.size() > 10) {
+                if (goodMatches.size() > 4) {
                     goodMatches = filterWithHomography(keypoints1, keypoints2, goodMatches);
                 }
                 
@@ -254,47 +277,80 @@ public class Main {
             }
         }
         
-        if (goodMatches.size() < 10 && !descriptors1.empty() && !descriptors2.empty()) {
-            List<DMatch> orbMatches = tryORBMatcher(gray1, gray2);
-
-            if (orbMatches.size() > goodMatches.size()) {
-                goodMatches = orbMatches;
-            }
-        }
+        BufferedImage img1WithMatches = drawMatchedPointsMethod1(img1, keypoints1, goodMatches, true);
+        BufferedImage img2WithMatches = drawMatchedPointsMethod1(img2, keypoints2, goodMatches, false);
         
-        BufferedImage img1WithMatches = drawMatchedPoints(img1, keypoints1, goodMatches, true);
-        BufferedImage img2WithMatches = drawMatchedPoints(img2, keypoints2, goodMatches, false);
-        
-        mat1.release(); mat2.release(); processed1.release(); processed2.release();
-        gray1.release(); gray2.release(); 
+        mat1.release(); mat2.release(); gray1.release(); gray2.release();
         keypoints1.release(); keypoints2.release(); descriptors1.release(); descriptors2.release();
         
         return new Object[]{img1WithMatches, img2WithMatches, goodMatches.size()};
     }
     
-    private static Mat preprocessImage(Mat image) {
-        Mat processed = image.clone();
-        
-        Mat gray = new Mat();
-        Imgproc.cvtColor(processed, gray, Imgproc.COLOR_BGR2GRAY);
-        
-        Imgproc.equalizeHist(gray, gray);
-        
-        Imgproc.GaussianBlur(gray, gray, new Size(3, 3), 0.5);
-        
-        Mat kernel = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3, 3));
-        Imgproc.morphologyEx(gray, gray, Imgproc.MORPH_CLOSE, kernel);
-        
-        Imgproc.cvtColor(gray, processed, Imgproc.COLOR_GRAY2BGR);
-        
-        gray.release();
-        kernel.release();
-        
-        return processed;
+    private static Object[] matchFeaturesMethod2(BufferedImage img1, BufferedImage img2) {
+        Mat mat1 = bufferedImageToMat(img1);
+        Mat mat2 = bufferedImageToMat(img2);
+
+        Mat gray1 = new Mat(), gray2 = new Mat();
+        Imgproc.cvtColor(mat1, gray1, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.cvtColor(mat2, gray2, Imgproc.COLOR_BGR2GRAY);
+
+        SIFT detector = SIFT.create();
+        MatOfKeyPoint keypoints1 = new MatOfKeyPoint();
+        MatOfKeyPoint keypoints2 = new MatOfKeyPoint();
+        Mat descriptors1 = new Mat();
+        Mat descriptors2 = new Mat();
+
+        detector.detectAndCompute(gray1, new Mat(), keypoints1, descriptors1);
+        detector.detectAndCompute(gray2, new Mat(), keypoints2, descriptors2);
+
+        DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.FLANNBASED);
+        List<MatOfDMatch> knnMatches = new ArrayList<>();
+        List<DMatch> goodMatches = new ArrayList<>();
+
+        if (!descriptors1.empty() && !descriptors2.empty()) {
+            try {
+                matcher.knnMatch(descriptors1, descriptors2, knnMatches, 2);
+
+                for (MatOfDMatch knnMatch : knnMatches) {
+                    DMatch[] matches = knnMatch.toArray();
+
+                    if (matches.length >= 2) {
+                        if (matches[0].distance < 0.85 * matches[1].distance) {
+                            goodMatches.add(matches[0]);
+                        }
+                    }
+                }
+
+                if (goodMatches.size() > 4) {
+                    goodMatches = robustFilterWithHomography(keypoints1, keypoints2, goodMatches);
+                    goodMatches = spatialConsistencyFilter(keypoints1, keypoints2, goodMatches);
+                }
+
+            } catch (Exception exception) {
+                exception.printStackTrace();
+            }
+        }
+
+        BufferedImage[] matchedPair = drawMatchedPointsPairwise(img1, img2, keypoints1, keypoints2, goodMatches);
+        BufferedImage img1WithMatches = matchedPair[0];
+        BufferedImage img2WithMatches = matchedPair[1];
+
+        int numMatches = goodMatches.size();
+
+        mat1.release();
+        mat2.release();
+        gray1.release();
+        gray2.release();
+        keypoints1.release();
+        keypoints2.release();
+        descriptors1.release();
+        descriptors2.release();
+
+        return new Object[]{img1WithMatches, img2WithMatches, numMatches};
     }
     
     private static List<DMatch> filterWithHomography(MatOfKeyPoint keypoints1, MatOfKeyPoint keypoints2, List<DMatch> matches) {
-        if (matches.size() < 8) {
+        if (matches.size() < 4) {
             return matches;
         }
         
@@ -313,82 +369,28 @@ public class Main {
         MatOfPoint2f points2 = new MatOfPoint2f(pts2.toArray(new org.opencv.core.Point[0]));
         
         Mat mask = new Mat();
-        Mat homography = Calib3d.findHomography(points1, points2, Calib3d.RANSAC, 3.0, mask);
+        Calib3d.findHomography(points1, points2, Calib3d.RANSAC, 5.0, mask);
         
         List<DMatch> inliers = new ArrayList<>();
-
         if (mask.rows() == matches.size()) {
             byte[] maskData = new byte[(int) mask.total()];
             mask.get(0, 0, maskData);
             
-            int inlierCount = 0;
-
             for (int i = 0; i < maskData.length; i++) {
                 if (maskData[i] != 0) {
                     inliers.add(matches.get(i));
-                    inlierCount++;
                 }
-            }
-            
-            if (inlierCount >= 8 && inlierCount >= matches.size() * 0.4) {
-                return inliers;
             }
         }
         
         points1.release();
         points2.release();
         mask.release();
-
-        if (homography != null) {
-            homography.release();
-        }
         
-        return matches;
+        return inliers;
     }
     
-    private static List<DMatch> tryORBMatcher(Mat gray1, Mat gray2) {
-        ORB orbDetector = ORB.create(2000, 1.2f, 8, 31, 0, 2, ORB.HARRIS_SCORE, 31, 20);
-        MatOfKeyPoint keypoints1 = new MatOfKeyPoint();
-        MatOfKeyPoint keypoints2 = new MatOfKeyPoint();
-        Mat descriptors1 = new Mat();
-        Mat descriptors2 = new Mat();
-        
-        orbDetector.detectAndCompute(gray1, new Mat(), keypoints1, descriptors1);
-        orbDetector.detectAndCompute(gray2, new Mat(), keypoints2, descriptors2);
-        
-        DescriptorMatcher matcher = DescriptorMatcher.create(DescriptorMatcher.BRUTEFORCE_HAMMING);
-        List<MatOfDMatch> knnMatches = new ArrayList<>();
-        List<DMatch> goodMatches = new ArrayList<>();
-        
-        if (!descriptors1.empty() && !descriptors2.empty()) {
-            try {
-                matcher.knnMatch(descriptors1, descriptors2, knnMatches, 2);
-                
-                for (MatOfDMatch knnMatch : knnMatches) {
-                    DMatch[] matches = knnMatch.toArray();
-
-                    if (matches.length >= 2) {
-                        if (matches[0].distance < 0.7 * matches[1].distance) {
-                            goodMatches.add(matches[0]);
-                        }
-                    }
-                }
-                
-                if (goodMatches.size() > 10) {
-                    goodMatches = filterWithHomography(keypoints1, keypoints2, goodMatches);
-                }
-            }
-            catch (Exception exception) {
-                System.out.println("ORB matching error: " + exception.getMessage());
-            }
-        }
-        
-        keypoints1.release(); keypoints2.release(); descriptors1.release(); descriptors2.release();
-
-        return goodMatches;
-    }
-    
-    private static BufferedImage drawMatchedPoints(BufferedImage original, MatOfKeyPoint keypoints, List<DMatch> matches, boolean isImage1) {
+    private static BufferedImage drawMatchedPointsMethod1(BufferedImage original, MatOfKeyPoint keypoints, List<DMatch> matches, boolean isImage1) {
         BufferedImage result = new BufferedImage(original.getWidth(), original.getHeight(), BufferedImage.TYPE_INT_RGB);
         Graphics2D g2d = result.createGraphics();
         g2d.drawImage(original, 0, 0, null);
@@ -424,6 +426,181 @@ public class Main {
         g2d.dispose();
         
         return result;
+    }
+
+    private static double median(List<Double> values) {
+        if (values.isEmpty()) {
+            return 0;
+        }
+
+        List<Double> sorted = new ArrayList<>(values);
+        sorted.sort(Double::compareTo);
+        int mid = sorted.size() / 2;
+
+        if (sorted.size() % 2 == 0) {
+            return (sorted.get(mid - 1) + sorted.get(mid)) / 2.0;
+        }
+        else {
+            return sorted.get(mid);
+        }
+    }
+    
+    private static List<DMatch> robustFilterWithHomography(MatOfKeyPoint keypoints1, MatOfKeyPoint keypoints2, List<DMatch> matches) {
+        if (matches.size() < 4) {
+            return matches;
+        }
+
+        List<org.opencv.core.Point> pts1 = new ArrayList<>();
+        List<org.opencv.core.Point> pts2 = new ArrayList<>();
+
+        KeyPoint[] kp1 = keypoints1.toArray();
+        KeyPoint[] kp2 = keypoints2.toArray();
+
+        for (DMatch match : matches) {
+            pts1.add(kp1[match.queryIdx].pt);
+            pts2.add(kp2[match.trainIdx].pt);
+        }
+
+        MatOfPoint2f points1 = new MatOfPoint2f(pts1.toArray(new org.opencv.core.Point[0]));
+        MatOfPoint2f points2 = new MatOfPoint2f(pts2.toArray(new org.opencv.core.Point[0]));
+
+        Mat maskH = new Mat();
+        Mat H = Calib3d.findHomography(points1, points2, Calib3d.RANSAC, 3.0, maskH);
+
+        List<DMatch> inliers = new ArrayList<>();
+
+        if (!maskH.empty() && maskH.rows() == matches.size()) {
+            byte[] maskData = new byte[(int) maskH.total()];
+            maskH.get(0, 0, maskData);
+
+            for (int i = 0; i < maskData.length; i++) {
+                if (maskData[i] != 0) {
+                    inliers.add(matches.get(i));
+                }
+            }
+        }
+
+        if (inliers.size() < Math.max(4, matches.size() / 3)) {
+            Mat maskF = new Mat();
+            Mat F = Calib3d.findFundamentalMat(points1, points2, Calib3d.FM_RANSAC, 3.0, 0.99, maskF);
+
+            if (!maskF.empty() && maskF.rows() == matches.size()) {
+                byte[] maskDataF = new byte[(int) maskF.total()];
+                maskF.get(0, 0, maskDataF);
+                List<DMatch> inliersF = new ArrayList<>();
+
+                for (int i = 0; i < maskDataF.length; i++) {
+                    if (maskDataF[i] != 0) {
+                        inliersF.add(matches.get(i));
+                    }
+                }
+
+                if (inliersF.size() > inliers.size()) {
+                    inliers = inliersF;
+                }
+            }
+
+            if (maskF != null) {
+                maskF.release();
+            }
+
+            if (F != null) {
+                F.release();
+            }
+        }
+
+        points1.release();
+        points2.release();
+
+        if (maskH != null) {
+            maskH.release();
+        }
+
+        if (H != null) {
+            H.release();
+        }
+
+        return inliers;
+    }
+    
+    private static List<DMatch> spatialConsistencyFilter(MatOfKeyPoint keypoints1, MatOfKeyPoint keypoints2, List<DMatch> matches) {
+        if (matches.size() < 3) {
+            return matches;
+        }
+
+        KeyPoint[] kp1 = keypoints1.toArray();
+        KeyPoint[] kp2 = keypoints2.toArray();
+        List<Double> dx = new ArrayList<>();
+        List<Double> dy = new ArrayList<>();
+
+        for (DMatch m : matches) {
+            org.opencv.core.Point p1 = kp1[m.queryIdx].pt;
+            org.opencv.core.Point p2 = kp2[m.trainIdx].pt;
+            dx.add(p2.x - p1.x);
+            dy.add(p2.y - p1.y);
+        }
+
+        double medianDx = median(dx);
+        double medianDy = median(dy);
+        List<DMatch> filtered = new ArrayList<>();
+
+        for (int i = 0; i < matches.size(); i++) {
+            DMatch m = matches.get(i);
+            org.opencv.core.Point p1 = kp1[m.queryIdx].pt;
+            org.opencv.core.Point p2 = kp2[m.trainIdx].pt;
+            double ddx = Math.abs((p2.x - p1.x) - medianDx);
+            double ddy = Math.abs((p2.y - p1.y) - medianDy);
+
+            if (ddx < 50 && ddy < 50) {
+                filtered.add(m);
+            }
+        }
+
+        if (filtered.size() < 4) {
+            return matches;
+        }
+
+        return filtered;
+    }
+
+    private static BufferedImage[] drawMatchedPointsPairwise(BufferedImage img1, BufferedImage img2, MatOfKeyPoint keypoints1, MatOfKeyPoint keypoints2, List<DMatch> matches) {
+        BufferedImage result1 = new BufferedImage(img1.getWidth(), img1.getHeight(), BufferedImage.TYPE_INT_RGB);
+        BufferedImage result2 = new BufferedImage(img2.getWidth(), img2.getHeight(), BufferedImage.TYPE_INT_RGB);
+
+        Graphics2D g1 = result1.createGraphics();
+        Graphics2D g2 = result2.createGraphics();
+
+        g1.drawImage(img1, 0, 0, null);
+        g2.drawImage(img2, 0, 0, null);
+
+        KeyPoint[] kp1 = keypoints1.toArray();
+        KeyPoint[] kp2 = keypoints2.toArray();
+
+        int pointSize = Math.max(6, Math.min(12, img1.getWidth() / 80));
+
+        for (int i = 0; i < matches.size(); i++) {
+            DMatch m = matches.get(i);
+            org.opencv.core.Point p1 = kp1[m.queryIdx].pt;
+            org.opencv.core.Point p2 = kp2[m.trainIdx].pt;
+
+            Color c = new Color(50 + (i * 73) % 200, 80 + (i * 97) % 150, 100 + (i * 53) % 155);
+
+            g1.setColor(c);
+            g2.setColor(c);
+
+            g1.fillOval((int) p1.x - pointSize / 2, (int) p1.y - pointSize / 2, pointSize, pointSize);
+            g2.fillOval((int) p2.x - pointSize / 2, (int) p2.y - pointSize / 2, pointSize, pointSize);
+
+            g1.setColor(Color.BLACK);
+            g2.setColor(Color.BLACK);
+            g1.drawOval((int) p1.x - pointSize / 2, (int) p1.y - pointSize / 2, pointSize, pointSize);
+            g2.drawOval((int) p2.x - pointSize / 2, (int) p2.y - pointSize / 2, pointSize, pointSize);
+        }
+
+        g1.dispose();
+        g2.dispose();
+        
+        return new BufferedImage[]{result1, result2};
     }
 
     private static Mat bufferedImageToMat(BufferedImage image) {
