@@ -296,9 +296,9 @@ public class Main {
                     grayMat.release();
                 }
             }
-            catch (Exception event) {
+            catch (Exception exception) {
                 System.err.println("Error loading image: " + path);
-                event.printStackTrace();
+                exception.printStackTrace();
             }
         }
     }
