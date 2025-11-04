@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
+from PIL import Image, ImageTk
 import matplotlib
 matplotlib.use('TkAgg')
 import sys
@@ -12,6 +13,8 @@ class MDPCapacitanceApp:
         self.root = root
         self.root.title("Расчет вольт-фарадной характеристики МДП-структуры")
         self.root.geometry("1400x900")
+
+        self.root.iconphoto(False, ImageTk.PhotoImage(Image.open("logo.png")))
         
         self.root.protocol("WM_DELETE_WINDOW", self.onClosing)
         
@@ -275,15 +278,14 @@ class MDPCapacitanceApp:
                     f.write("# Полупроводник: " + self.semiconductorVar.get() + "\n")
                     f.write(f"# Запрещенная зона = {self.EgVar.get()} эВ\n")
                     f.write(f"# Диэлектрическая проницаемость = {self.epsilonVar.get()}\n")
-                    f.write(f"# Эфф. масса дырок = {self.md_hVar.get()}\n")
-                    f.write(f"# Эфф. масса электронов = {self.md_eVar.get()}\n")
+                    f.write(f"# Эффективная масса дырок = {self.md_hVar.get()}\n")
+                    f.write(f"# Эффективная масса электронов = {self.md_eVar.get()}\n")
                     f.write(f"# Уровень донора = {self.EdVar.get()} эВ\n")
                     f.write(f"# Концентрация доноров = {Nd0_actual:.2e} см⁻³\n")
                     f.write(f"# Температура = {self.TVar.get()} К\n")
                     f.write(f"# Толщина диэлектрика = {self.dVar.get()} нм\n")
                     f.write(f"# Площадь контакта = {self.SVar.get()} мм²\n")
                     f.write(f"# Диэлектрическая проницаемость диэлектрика = {self.epsilon_dVar.get()}\n")
-                    f.write("#\n")
                     
                     for V, C_val in zip(voltages, capacitances):
                         f.write(f"{V:.3f}    {C_val:.6f}\n")
