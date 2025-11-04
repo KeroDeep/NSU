@@ -31,7 +31,7 @@ class Main {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             try {
-                mainFrame = new JFrame("Automatic License Plate Recognition");
+                mainFrame = new JFrame("License plate recognition");
                 mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
                 mainFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
                 mainFrame.setLayout(new BorderLayout());
@@ -60,8 +60,8 @@ class Main {
                 
                 initializeSVM();
             }
-            catch (Exception e) {
-                e.printStackTrace();
+            catch (Exception exception) {
+                exception.printStackTrace();
             }
         });
     }
@@ -71,11 +71,11 @@ class Main {
         panel.setBackground(new Color(240, 240, 240));
         panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
-        loadImageBtn = new JButton("Load Images");
-        clearBtn = new JButton("Clear All");
+        loadImageBtn = new JButton("Open file manager");
+        clearBtn = new JButton("Clear all");
         
-        loadImageBtn.addActionListener(e -> openFileManager());
-        clearBtn.addActionListener(e -> clearAll());
+        loadImageBtn.addActionListener(exception -> openFileManager());
+        clearBtn.addActionListener(exception -> clearAll());
         
         panel.add(loadImageBtn);
         panel.add(clearBtn);
@@ -101,12 +101,14 @@ class Main {
                     try {
                         File file = new File(imagePath);
                         BufferedImage image = ImageIO.read(file);
+
                         if (image != null) {
                             originalImages.add(image);
                             loadedCount++;
                             processSingleImage(image);
                         }
-                    } catch (Exception e) {
+                    }
+                    catch (Exception exception) {
                         System.err.println("Error loading image: " + imagePath);
                     }
                 }
@@ -144,14 +146,16 @@ class Main {
                 for (Mat character : characters) {
                     character.release();
                 }
-            } else {
-                plateROIs.add(createPlaceholderImage(300, 150, "Plate Not Found"));
-                binaryChars.add(createPlaceholderImage(400, 100, "No Characters"));
-                recognizedChars.add(createPlaceholderImage(400, 100, "No Characters"));
             }
-        } catch (Exception e) {
-            System.err.println("Error processing image: " + e.getMessage());
-            plateROIs.add(createPlaceholderImage(300, 150, "Processing Error"));
+            else {
+                plateROIs.add(createPlaceholderImage(400, 100, "Plate not found"));
+                binaryChars.add(createPlaceholderImage(400, 100, "No characters"));
+                recognizedChars.add(createPlaceholderImage(400, 100, "No characters"));
+            }
+        }
+        catch (Exception exception) {
+            System.err.println("Error processing image: " + exception.getMessage());
+            plateROIs.add(createPlaceholderImage(400, 100, "Processing error"));
             binaryChars.add(createPlaceholderImage(400, 100, "Error"));
             recognizedChars.add(createPlaceholderImage(400, 100, "Error"));
         }
@@ -163,7 +167,8 @@ class Main {
             characterSVM.setType(SVM.C_SVC);
             characterSVM.setKernel(SVM.LINEAR);
             characterSVM.setC(1);
-        } catch (Exception e) {
+        }
+        catch (Exception exception) {
             JOptionPane.showMessageDialog(mainFrame, "Error initializing SVM", "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -179,6 +184,7 @@ class Main {
         int textWidth = fm.stringWidth(text);
         g2d.drawString(text, (width - textWidth) / 2, height / 2);
         g2d.dispose();
+
         return image;
     }
     
@@ -186,9 +192,11 @@ class Main {
         List<Rect> plates = new ArrayList<>();
         
         Mat gray = new Mat();
+
         if (image.channels() > 1) {
             Imgproc.cvtColor(image, gray, Imgproc.COLOR_BGR2GRAY);
-        } else {
+        }
+        else {
             gray = image.clone();
         }
         
@@ -238,6 +246,7 @@ class Main {
         int height = Math.min(original.rows() - y, plateRect.height + 2 * padding);
         
         Rect expandedRect = new Rect(x, y, width, height);
+
         return new Mat(original, expandedRect);
     }
     
@@ -245,9 +254,11 @@ class Main {
         List<Mat> characters = new ArrayList<>();
         
         Mat plateGray = new Mat();
+
         if (plateImage.channels() > 1) {
             Imgproc.cvtColor(plateImage, plateGray, Imgproc.COLOR_BGR2GRAY);
-        } else {
+        }
+        else {
             plateGray = plateImage.clone();
         }
         
@@ -263,6 +274,7 @@ class Main {
         Imgproc.findContours(plateBinary, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
         
         List<Rect> charRects = new ArrayList<>();
+
         for (MatOfPoint contour : contours) {
             Rect rect = Imgproc.boundingRect(contour);
             
@@ -324,7 +336,7 @@ class Main {
     
     private static BufferedImage createBinaryCharactersImage(List<Mat> characters) {
         if (characters.isEmpty()) {
-            return createPlaceholderImage(400, 100, "No Characters Detected");
+            return createPlaceholderImage(400, 100, "No characters detected");
         }
         
         int totalWidth = 0;
@@ -342,8 +354,10 @@ class Main {
         g2d.dispose();
         
         int x = 0;
+
         for (Mat character : characters) {
             BufferedImage charImage = matToBufferedImage(character);
+
             if (charImage != null) {
                 Graphics2D g = result.createGraphics();
                 g.drawImage(charImage, x, (maxHeight - charImage.getHeight()) / 2, null);
@@ -357,7 +371,7 @@ class Main {
     
     private static BufferedImage createRecognizedCharactersImage(List<Mat> characters) {
         if (characters.isEmpty()) {
-            return createPlaceholderImage(400, 100, "No Characters");
+            return createPlaceholderImage(400, 100, "No characters");
         }
         
         String recognizedText = recognizeCharacters(characters);
@@ -406,16 +420,29 @@ class Main {
         int totalPixels = character.rows() * character.cols();
         double blackRatio = (double) blackPixels / totalPixels;
         
-        if (blackRatio < 0.05) return '?';
+        if (blackRatio < 0.05) {
+            return '?';
+        }
         
         Rect boundingRect = getBoundingBox(character);
         double aspectRatio = (double) boundingRect.width / boundingRect.height;
         double fillRatio = (double) (boundingRect.width * boundingRect.height) / totalPixels;
         
-        if (aspectRatio < 0.3) return '1';
-        if (aspectRatio > 1.5) return '-';
-        if (fillRatio > 0.8 && blackRatio > 0.6) return '0';
-        if (blackRatio > 0.5) return '8';
+        if (aspectRatio < 0.3) {
+            return '1';
+        }
+
+        if (aspectRatio > 1.5) {
+            return '-';
+        }
+
+        if (fillRatio > 0.8 && blackRatio > 0.6) {
+            return '0';
+        }
+
+        if (blackRatio > 0.5) {
+            return '8';
+        }
         
         return 'A';
     }
@@ -426,6 +453,7 @@ class Main {
         
         if (points.rows() == 0) {
             points.release();
+
             return new Rect(0, 0, character.cols(), character.rows());
         }
         
@@ -443,6 +471,7 @@ class Main {
         }
         
         points.release();
+
         return new Rect(minX, minY, maxX - minX + 1, maxY - minY + 1);
     }
     
@@ -450,13 +479,14 @@ class Main {
         imagePanel.removeAll();
         
         for (int i = 0; i < originalImages.size(); i++) {
-            imagePanel.add(createImageLabel(originalImages.get(i), 350));
+            imagePanel.add(createImageLabel(originalImages.get(i), 400));
             
             if (i < plateROIs.size()) {
-                imagePanel.add(createImageLabel(plateROIs.get(i), 350));
+                imagePanel.add(createImageLabel(plateROIs.get(i), 400));
                 imagePanel.add(createImageLabel(binaryChars.get(i), 400));
                 imagePanel.add(createImageLabel(recognizedChars.get(i), 400));
-            } else {
+            }
+            else {
                 imagePanel.add(new JLabel(" ", JLabel.CENTER));
                 imagePanel.add(new JLabel(" ", JLabel.CENTER));
                 imagePanel.add(new JLabel(" ", JLabel.CENTER));
@@ -473,6 +503,7 @@ class Main {
         label.setHorizontalAlignment(JLabel.CENTER);
         label.setBorder(BorderFactory.createLineBorder(Color.BLACK));
         label.setPreferredSize(new Dimension(maxSize, maxSize));
+
         return label;
     }
     
@@ -509,7 +540,8 @@ class Main {
             mat.put(0, 0, pixels);
             
             return mat;
-        } catch (Exception e) {
+        }
+        catch (Exception exception) {
             return new Mat();
         }
     }
@@ -517,6 +549,7 @@ class Main {
     private static BufferedImage matToBufferedImage(Mat mat) {
         try {
             int type = BufferedImage.TYPE_BYTE_GRAY;
+
             if (mat.channels() > 1) {
                 type = BufferedImage.TYPE_3BYTE_BGR;
                 Mat temp = new Mat();
@@ -533,8 +566,9 @@ class Main {
             System.arraycopy(buffer, 0, targetPixels, 0, buffer.length);
             
             return image;
-        } catch (Exception e) {
-            return createPlaceholderImage(150, 80, " ");
+        }
+        catch (Exception exception) {
+            return createPlaceholderImage(400, 100, " ");
         }
     }
     
