@@ -99,27 +99,27 @@ public class Main {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(2, 5, 2, 5);
         
-        thresholdSlider = new JSlider(50, 95, 80);
-        thresholdSlider.setMajorTickSpacing(15);
-        thresholdSlider.setMinorTickSpacing(5);
+        thresholdSlider = new JSlider(0, 255, 128);
+        thresholdSlider.setMajorTickSpacing(50);
+        thresholdSlider.setMinorTickSpacing(10);
         thresholdSlider.setPaintTicks(true);
         thresholdSlider.setPaintLabels(true);
         
-        brightnessSlider = new JSlider(-100, 100, 0);
-        brightnessSlider.setMajorTickSpacing(50);
-        brightnessSlider.setMinorTickSpacing(10);
+        brightnessSlider = new JSlider(-255, 255, 0);
+        brightnessSlider.setMajorTickSpacing(100);
+        brightnessSlider.setMinorTickSpacing(25);
         brightnessSlider.setPaintTicks(true);
         brightnessSlider.setPaintLabels(true);
         
-        contrastSlider = new JSlider(10, 300, 100);
+        contrastSlider = new JSlider(0, 300, 100);
         contrastSlider.setMajorTickSpacing(100);
         contrastSlider.setMinorTickSpacing(25);
         contrastSlider.setPaintTicks(true);
         contrastSlider.setPaintLabels(true);
         
-        noiseSlider = new JSlider(0, 100, 0);
-        noiseSlider.setMajorTickSpacing(25);
-        noiseSlider.setMinorTickSpacing(5);
+        noiseSlider = new JSlider(0, 255, 0);
+        noiseSlider.setMajorTickSpacing(50);
+        noiseSlider.setMinorTickSpacing(10);
         noiseSlider.setPaintTicks(true);
         noiseSlider.setPaintLabels(true);
         
@@ -333,14 +333,14 @@ public class Main {
     }
     
     private static void resetParameters() {
-        thresholdSlider.setValue(80);
+        thresholdSlider.setValue(128);
         brightnessSlider.setValue(0);
         contrastSlider.setValue(100);
         noiseSlider.setValue(0);
         scaleSlider.setValue(100);
         rotationSlider.setValue(0);
         
-        matchThreshold = 0.8;
+        matchThreshold = 1.28;
         brightness = 0;
         contrast = 1.0;
         noiseLevel = 0;
@@ -355,6 +355,7 @@ public class Main {
     private static void saveResult() {
         if (sourceImage == null || templateImage == null) {
             JOptionPane.showMessageDialog(mainFrame, "No result to save", "Error", JOptionPane.ERROR_MESSAGE);
+            
             return;
         }
         
@@ -718,14 +719,14 @@ public class Main {
         detectionResults.clear();
         showInitialMessage = false;
         
-        thresholdSlider.setValue(80);
+        thresholdSlider.setValue(128);
         brightnessSlider.setValue(0);
         contrastSlider.setValue(100);
         noiseSlider.setValue(0);
         scaleSlider.setValue(100);
         rotationSlider.setValue(0);
         
-        matchThreshold = 0.8;
+        matchThreshold = 1.28;
         brightness = 0;
         contrast = 1.0;
         noiseLevel = 0;
