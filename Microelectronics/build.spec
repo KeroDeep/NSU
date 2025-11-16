@@ -7,7 +7,16 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[('logo.png', '.')],
-    hiddenimports=[],
+    hiddenimports=[
+        'matplotlib.backends.backend_pdf',
+        'matplotlib.backends.backend_agg',
+        'matplotlib.figure',
+        'matplotlib._png',
+        'matplotlib._ttconv',
+        'matplotlib.ft2font',
+        'PIL._imaging',
+        'PIL._imagingft'
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

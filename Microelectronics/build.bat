@@ -20,19 +20,13 @@ if exist "main.exe" (
     del "main.exe" 2>nul
 )
 
-echo Step 2: Creating virtual environment...
-python -m venv venv
+echo Step 2: Installing dependencies...
+pip install --user numpy matplotlib pillow pyinstaller --quiet
 
-echo Step 3: Activating virtual environment...
-call venv\Scripts\activate.bat
-
-echo Step 4: Installing dependencies...
-pip install numpy matplotlib pillow pyinstaller --quiet
-
-echo Step 5: Building using build.spec file...
+echo Step 3: Building using configuration file...
 pyinstaller build.spec
 
-echo Step 6: Moving EXE to current directory...
+echo Step 4: Moving EXE to current directory...
 if exist "dist\main.exe" (
     move "dist\main.exe" "main.exe"
     echo EXE file moved successfully!
@@ -41,7 +35,7 @@ if exist "dist\main.exe" (
     goto :error
 )
 
-echo Step 7: Cleaning up build artifacts...
+echo Step 5: Cleaning up build artifacts...
 if exist "build" (
     rmdir /s /q "build" 2>nul
 )
@@ -51,9 +45,6 @@ if exist "dist" (
 if exist "__pycache__" (
     rmdir /s /q "__pycache__" 2>nul
 )
-if exist "venv" (
-    rmdir /s /q "venv" 2>nul
-)
 
 echo ========================================
 echo      Build completed successfully!
@@ -62,6 +53,7 @@ echo ========================================
 goto :end
 
 :error
+
 echo ========================================
 echo             Build failed!
 echo ========================================
@@ -75,9 +67,6 @@ if exist "dist" (
 )
 if exist "__pycache__" (
     rmdir /s /q "__pycache__" 2>nul
-)
-if exist "venv" (
-    rmdir /s /q "venv" 2>nul
 )
 exit /b 1
 
