@@ -319,8 +319,7 @@ public class Main {
     private static String findTimeWithTemplateMatching(Mat image) {
         List<Object[]> timeMatches = new ArrayList<>();
         
-        int centerX = image.cols() / 2;
-        Rect timeROI = new Rect(centerX - 100, 20, 200, 50);
+        Rect timeROI = new Rect(675, 40, 150, 60);
         
         if (timeROI.x < 0 || timeROI.y < 0 || timeROI.x + timeROI.width > image.cols() || timeROI.y + timeROI.height > image.rows()) {
             return "";
@@ -370,67 +369,86 @@ public class Main {
     }
     
     private static String findScoreWithTemplateMatching(Mat image) {
-        List<Object[]> scoreMatches = new ArrayList<>();
+        List<Object[]> leftScoreMatches = new ArrayList<>();
+        List<Object[]> rightScoreMatches = new ArrayList<>();
         
-        int centerX = image.cols() / 2;
-        int centerY = image.rows() / 2;
+        Rect leftScoreROI = new Rect(570, 10, 100, 90);
+        Rect rightScoreROI = new Rect(780, 10, 130, 90);
         
-        Rect scoreROI = new Rect(centerX - 200, centerY - 30, 400, 60);
-        
-        if (scoreROI.x < 0 || scoreROI.y < 0 || scoreROI.x + scoreROI.width > image.cols() || scoreROI.y + scoreROI.height > image.rows()) {
+        if (leftScoreROI.x < 0 || leftScoreROI.y < 0 || leftScoreROI.x + leftScoreROI.width > image.cols() || leftScoreROI.y + leftScoreROI.height > image.rows()) {
             return "";
         }
         
-        Mat scoreRegion = new Mat(image, scoreROI);
-        Mat gray = new Mat();
-        Imgproc.cvtColor(scoreRegion, gray, Imgproc.COLOR_BGR2GRAY);
+        if (rightScoreROI.x < 0 || rightScoreROI.y < 0 || rightScoreROI.x + rightScoreROI.width > image.cols() || rightScoreROI.y + rightScoreROI.height > image.rows()) {
+            return "";
+        }
+        
+        Mat leftScoreRegion = new Mat(image, leftScoreROI);
+        Mat rightScoreRegion = new Mat(image, rightScoreROI);
+        
+        Mat leftGray = new Mat();
+        Mat rightGray = new Mat();
+        Imgproc.cvtColor(leftScoreRegion, leftGray, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.cvtColor(rightScoreRegion, rightGray, Imgproc.COLOR_BGR2GRAY);
         
         for (Map.Entry<String, Mat> entry : scoreDigitTemplates.entrySet()) {
             String digit = entry.getKey();
             Mat template = entry.getValue();
             
-            if (template.rows() > scoreRegion.rows() || template.cols() > scoreRegion.cols()) {
+            if (template.rows() > leftScoreRegion.rows() || template.cols() > leftScoreRegion.cols()) {
                 continue;
             }
             
-            Mat result = new Mat();
-            Imgproc.matchTemplate(gray, template, result, Imgproc.TM_CCOEFF_NORMED);
+            Mat leftResult = new Mat();
+            Imgproc.matchTemplate(leftGray, template, leftResult, Imgproc.TM_CCOEFF_NORMED);
             
-            for (int i = 0; i < result.rows(); i++) {
-                for (int j = 0; j < result.cols(); j++) {
-                    double[] matchValue = result.get(i, j);
+            for (int i = 0; i < leftResult.rows(); i++) {
+                for (int j = 0; j < leftResult.cols(); j++) {
+                    double[] matchValue = leftResult.get(i, j);
 
                     if (matchValue[0] >= 0.5) {
-                        scoreMatches.add(new Object[]{j, i, digit, matchValue[0]});
+                        leftScoreMatches.add(new Object[]{j, i, digit, matchValue[0]});
                     }
                 }
             }
-            result.release();
+            leftResult.release();
+            
+            Mat rightResult = new Mat();
+            Imgproc.matchTemplate(rightGray, template, rightResult, Imgproc.TM_CCOEFF_NORMED);
+            
+            for (int i = 0; i < rightResult.rows(); i++) {
+                for (int j = 0; j < rightResult.cols(); j++) {
+                    double[] matchValue = rightResult.get(i, j);
+
+                    if (matchValue[0] >= 0.5) {
+                        rightScoreMatches.add(new Object[]{j, i, digit, matchValue[0]});
+                    }
+                }
+            }
+            
+            rightResult.release();
         }
         
-        gray.release();
-        scoreRegion.release();
+        leftGray.release();
+        rightGray.release();
+        leftScoreRegion.release();
+        rightScoreRegion.release();
         
-        Collections.sort(scoreMatches, (a, b) -> Integer.compare((Integer)a[0], (Integer)b[0]));
+        Collections.sort(leftScoreMatches, (a, b) -> Integer.compare((Integer)a[0], (Integer)b[0]));
+        Collections.sort(rightScoreMatches, (a, b) -> Integer.compare((Integer)a[0], (Integer)b[0]));
         
-        List<Object[]> filtered = filterOverlappingMatches(scoreMatches, 12);
-        
-        if (filtered.isEmpty()) {
-            return "";
-        }
-        
-        int gapIndex = findScoreGap(filtered);
+        List<Object[]> filteredLeft = filterOverlappingMatches(leftScoreMatches, 12);
+        List<Object[]> filteredRight = filterOverlappingMatches(rightScoreMatches, 12);
         
         StringBuilder leftScore = new StringBuilder();
         StringBuilder rightScore = new StringBuilder();
+
+        for (Object[] match : filteredLeft) {
+            leftScore.append((String)match[2]);
+        }
         
-        for (int i = 0; i < filtered.size(); i++) {
-            if (i <= gapIndex) {
-                leftScore.append((String)filtered.get(i)[2]);
-            }
-            else {
-                rightScore.append((String)filtered.get(i)[2]);
-            }
+        for (Object[] match : filteredRight) {
+            rightScore.append((String)match[2]);
         }
         
         return leftScore.toString() + ":" + rightScore.toString();
