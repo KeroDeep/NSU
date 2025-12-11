@@ -12,7 +12,7 @@
 
 Нейронная сеть (Neural Network)
 
-`Neural Network.ipynb` - следуйте инструкциям в ноутбуке.
+`Neural network.ipynb` - следуйте инструкциям в ноутбуке.
 
 ## Часть 2
 

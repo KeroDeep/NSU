@@ -16,4 +16,4 @@
 https://medium.com/deep-learning-turkey/google-colab-free-gpu-tutorial-e113627b9f5d
 (Keras инсталлировать не нужно, наш notebook сам установит PyTorch)
 
-`HotDogOrNot.ipynb` - следуйте инструкциям в ноутбуке.
+`Hotdog or not.ipynb` - следуйте инструкциям в ноутбуке.

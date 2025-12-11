@@ -10,12 +10,12 @@
 
 ## Часть 1
 
-Word2Vec
+Word 2 vectors
 
-`Word2Vec.ipynb` - следуйте инструкциям в ноутбуке.
+`Word 2 vectors.ipynb` - следуйте инструкциям в ноутбуке.
 
 ## Часть 2
 
-Word2Vec with Negative Sampling
+Word 2 vectors with Negative sampling
 
-`Negative Sampling.ipynb` - следуйте инструкциям в ноутбуке.
+`Negative sampling.ipynb` - следуйте инструкциям в ноутбуке.

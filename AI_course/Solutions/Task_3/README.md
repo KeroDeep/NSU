@@ -28,4 +28,4 @@ PyTorch CNN
 https://medium.com/deep-learning-turkey/google-colab-free-gpu-tutorial-e113627b9f5d
 (Keras инсталлировать не нужно, наш notebook сам установит PyTorch)
 
-`PyTorch_CNN.ipynb` - следуйте инструкциям в ноутбуке.
+`PyTorch CNN.ipynb` - следуйте инструкциям в ноутбуке.
