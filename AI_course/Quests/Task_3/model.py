@@ -1,11 +1,8 @@
-import numpy as np
-
 from layers import (
     FullyConnectedLayer, ReLULayer,
     ConvolutionalLayer, MaxPoolingLayer, Flattener,
     softmax_with_cross_entropy, l2_regularization
 )
-
 
 class ConvNet:
     """
@@ -25,7 +22,7 @@ class ConvNet:
             conv1_channels, int - number of filters in the 1st conv layer
             conv2_channels, int - number of filters in the 2nd conv layer
         """
-        # TODO Create necessary layers
+        # TODO: Create necessary layers
         raise Exception("Not implemented!")
 
 
@@ -37,12 +34,10 @@ class ConvNet:
             X, np array (batch_size, height, width, input_features) - input data
             y, np array of int (batch_size) - classes
         """
-        # Before running forward and backward pass through the model,
-        # clear parameter gradients aggregated from the previous pass
+        # Before running forward and backward pass through the model, clear parameter gradients aggregated from the previous pass
 
-        # TODO Compute loss and fill param gradients
-        # Don't worry about implementing L2 regularization, we will not
-        # need it in this assignment
+        # TODO: Compute loss and fill param gradients
+        # Don't worry about implementing L2 regularization, we will not need it in this assignment
         raise Exception("Not implemented!")
 
 
@@ -54,8 +49,7 @@ class ConvNet:
     def params(self):
         result = {}
 
-        # TODO: Aggregate all the params from all the layers
-        # which have parameters
+        # TODO: Aggregate all the params from all the layers which have parameters
         raise Exception("Not implemented!")
 
         return result

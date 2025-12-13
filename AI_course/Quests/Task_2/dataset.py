@@ -4,8 +4,8 @@ import scipy.io as io
 
 def load_data_mat(filename, max_samples, seed=42):
     raw = io.loadmat(filename)
-    X = raw['X']  # Array of [32, 32, 3, n_samples]
-    y = raw['y']  # Array of [n_samples, 1]
+    X = raw["X"]  # Array of [32, 32, 3, n_samples]
+    y = raw["y"]  # Array of [n_samples, 1]
     X = np.moveaxis(X, [3], [0])
     y = y.flatten()
     # Fix up class 0 to be 0

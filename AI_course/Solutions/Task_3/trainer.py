@@ -4,9 +4,9 @@ from copy import deepcopy
 from metrics import multiclass_accuracy
 
 class Dataset:
-    ''' 
+    """ 
     Utility class to hold training and validation data
-    '''
+    """
     def __init__(self, train_X, train_y, val_X, val_y):
         self.train_X = train_X
         self.train_y = train_y
@@ -15,12 +15,12 @@ class Dataset:
 
 
 class Trainer:
-    '''
+    """
     Trainer of the neural network models
     Perform mini-batch SGD with the specified data, model, training parameters and optimization rule
-    '''
+    """
     def __init__(self, model, dataset, optim, num_epochs=20, batch_size=20, learning_rate=1e-3, learning_rate_decay=1.0):
-        '''
+        """
         Initializes the trainer
 
         Arguments:
@@ -31,7 +31,7 @@ class Trainer:
             batch_size, int - batch size
             learning_rate, float - initial learning rate
             learning_rate_decal, float - ratio for decaying learning rate every epoch
-        '''
+        """
         self.dataset = dataset
         self.model = model
         self.optim = optim
@@ -51,9 +51,9 @@ class Trainer:
 
 
     def compute_accuracy(self, X, y):
-        '''
+        """
         Computes accuracy on provided data using mini-batches
-        '''
+        """
         indices = np.arange(X.shape[0])
 
         sections = np.arange(self.batch_size, X.shape[0], self.batch_size)
@@ -70,9 +70,9 @@ class Trainer:
 
 
     def fit(self):
-        '''
+        """
         Trains a model
-        '''
+        """
         if self.optimizers is None:
             self.setup_optimizers()
 
@@ -81,6 +81,8 @@ class Trainer:
         loss_history = []
         train_acc_history = []
         val_acc_history = []
+
+        current_lr = self.learning_rate
 
         for epoch in range(self.num_epochs):
             shuffled_indices = np.arange(num_train)
@@ -98,11 +100,11 @@ class Trainer:
                 
                 for param_name, param in self.model.params().items():
                     optimizer = self.optimizers[param_name]
-                    param.value = optimizer.update(param.value, param.grad, self.learning_rate)
+                    param.value = optimizer.update(param.value, param.grad, current_lr)
 
                 batch_losses.append(loss)
 
-            self.learning_rate *= self.learning_rate_decay
+            current_lr *= self.learning_rate_decay
 
             ave_loss = np.mean(batch_losses)
 

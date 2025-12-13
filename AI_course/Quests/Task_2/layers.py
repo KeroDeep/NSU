@@ -53,8 +53,7 @@ class ReLULayer:
 
     def forward(self, X):
         # TODO: Implement forward pass
-        # Hint: you'll need to save some information about X
-        # to use it later in the backward pass
+        # NOTE: You'll need to save some information about X to use it later in the backward pass
         raise Exception("Not implemented!")
 
 
@@ -96,8 +95,7 @@ class FullyConnectedLayer:
     def backward(self, d_out):
         """
         Backward pass
-        Computes gradient with respect to input and
-        accumulates gradients within self.W and self.B
+        Computes gradient with respect to input and accumulates gradients within self.W and self.B
 
         Arguments:
             d_out, np array (batch_size, n_output) - gradient of loss function with respect to output
@@ -106,12 +104,10 @@ class FullyConnectedLayer:
             d_result: np array (batch_size, n_input) - gradient with respect to input
         """
         # TODO: Implement backward pass
-        # Compute both gradient with respect to input
-        # and gradients with respect to W and B
+        # Compute both gradient with respect to input and gradients with respect to W and B
         # Add gradients of W and B to their `grad` attribute
 
-        # It should be pretty similar to linear classifier from
-        # the previous assignment
+        # It should be pretty similar to linear classifier from the previous assignment
 
         raise Exception("Not implemented!")
 
@@ -119,4 +115,4 @@ class FullyConnectedLayer:
 
 
     def params(self):
-        return {'W': self.W, 'B': self.B}
+        return {"W": self.W, "B": self.B}

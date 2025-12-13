@@ -2,8 +2,7 @@ import numpy as np
 
 def check_gradient(f, x, delta=1e-5, tol=1e-4):
     """
-    Checks the implementation of analytical gradient by comparing
-    it to numerical gradient using two-point formula
+    Checks the implementation of analytical gradient by comparing it to numerical gradient using two-point formula
 
     Arguments:
         f: function that receives x and computes value and gradient
@@ -22,13 +21,13 @@ def check_gradient(f, x, delta=1e-5, tol=1e-4):
 
     assert analytic_grad.shape == x.shape
 
-    it = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
+    it = np.nditer(x, flags=["multi_index"], op_flags=["readwrite"])
     while not it.finished:
         ix = it.multi_index
         analytic_grad_at_ix = analytic_grad[ix]
         numeric_grad_at_ix = 0
 
-        # TODO Copy from previous assignment
+        # TODO: Copy from previous assignment
         raise Exception("Not implemented!")
 
         if not np.isclose(numeric_grad_at_ix, analytic_grad_at_ix, tol):

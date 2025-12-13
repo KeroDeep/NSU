@@ -1,7 +1,7 @@
 import numpy as np
 
 def l2_regularization(W, reg_strength):
-    '''
+    """
     Computes L2 regularization loss on weights and its gradient
 
     Arguments:
@@ -11,7 +11,7 @@ def l2_regularization(W, reg_strength):
     Returns:
         loss, single value - l2 regularization loss
         gradient, np.array same shape as W - gradient of weight by l2 loss
-    '''
+    """
     # TODO: Copy from previous assignment
     raise Exception("Not implemented!")
 
@@ -19,7 +19,7 @@ def l2_regularization(W, reg_strength):
 
 
 def softmax_with_cross_entropy(predictions, target_index):
-    '''
+    """
     Computes softmax and cross-entropy loss for model predictions, including the gradient
 
     Arguments:
@@ -29,18 +29,18 @@ def softmax_with_cross_entropy(predictions, target_index):
     Returns:
         loss, single value - cross-entropy loss
         dprediction, np array same shape as predictions - gradient of predictions by loss value
-    '''
-    # TODO copy from the previous assignment
+    """
+    # TODO: Copy from the previous assignment
     raise Exception("Not implemented!")
 
     return loss, dprediction
 
 
 class Param:
-    '''
+    """
     Trainable parameter of the model
     Captures both parameter value and the gradient
-    '''
+    """
     def __init__(self, value):
         self.value = value
         self.grad = np.zeros_like(value)
@@ -52,12 +52,12 @@ class ReLULayer:
 
 
     def forward(self, X):
-        # TODO copy from the previous assignment
+        # TODO: Copy from the previous assignment
         raise Exception("Not implemented!")
 
 
     def backward(self, d_out):
-        # TODO copy from the previous assignment
+        # TODO: Copy from the previous assignment
         raise Exception("Not implemented!")
 
         return d_result
@@ -75,32 +75,32 @@ class FullyConnectedLayer:
 
 
     def forward(self, X):
-        # TODO copy from the previous assignment
+        # TODO: Copy from the previous assignment
         raise Exception("Not implemented!")
 
 
     def backward(self, d_out):
-        # TODO copy from the previous assignment
+        # TODO: Copy from the previous assignment
         
         raise Exception("Not implemented!")        
         return d_input
 
 
     def params(self):
-        return { 'W': self.W, 'B': self.B }
+        return { "W": self.W, "B": self.B }
 
 
 class ConvolutionalLayer:
     def __init__(self, in_channels, out_channels, filter_size, padding):
-        '''
+        """
         Initializes the layer
 
         Arguments:
             in_channels, int - number of input channels
             out_channels, int - number of output channels
             filter_size, int - size of the conv filter
-            padding, int - number of 'pixels' to pad on each side
-        '''
+            padding, int - number of «pixels» to pad on each side
+        """
 
         self.filter_size = filter_size
         self.in_channels = in_channels
@@ -119,11 +119,9 @@ class ConvolutionalLayer:
         out_width = 0
 
         # TODO: Implement forward pass
-        # Hint: setup variables that hold the result
-        # and one x/y location at a time in the loop below
+        # NOTE: Setup variables that hold the result and one x/y location at a time in the loop below
 
-        # It's ok to use loops for going over width and height
-        # but try to avoid having any other loops
+        # It's ok to use loops for going over width and height but try to avoid having any other loops
         for y in range(out_height):
             for x in range(out_width):
                 # TODO: Implement forward pass for specific location
@@ -132,43 +130,39 @@ class ConvolutionalLayer:
 
 
     def backward(self, d_out):
-        # Hint: Forward pass was reduced to matrix multiply
-        # You already know how to backprop through that
-        # when you implemented FullyConnectedLayer
+        # NOTE: Forward pass was reduced to matrix multiply
+        # You already know how to backprop through that when you implemented FullyConnectedLayer
         # Just do it the same number of times and accumulate gradients
 
-        batch_size, height, width, channels = X.shape
+        batch_size, height, width, channels = self.X.shape
         _, out_height, out_width, out_channels = d_out.shape
 
         # TODO: Implement backward pass
-        # Same as forward, setup variables of the right shape that
-        # aggregate input gradient and fill them for every location
-        # of the output
+        # Same as forward, setup variables of the right shape that aggregate input gradient and fill them for every location of the output
 
         # Try to avoid having any other loops here too
         for y in range(out_height):
             for x in range(out_width):
                 # TODO: Implement backward pass for specific location
-                # Aggregate gradients for both the input and
-                # the parameters (W and B)
+                # Aggregate gradients for both the input and the parameters (W and B)
                 pass
 
         raise Exception("Not implemented!")
 
 
     def params(self):
-        return { 'W': self.W, 'B': self.B }
+        return { "W": self.W, "B": self.B }
 
 
 class MaxPoolingLayer:
     def __init__(self, pool_size, stride):
-        '''
+        """
         Initializes the max pool
 
         Arguments:
             pool_size, int - area to pool
             stride, int - step size between pooling windows
-        '''
+        """
         self.pool_size = pool_size
         self.stride = stride
         self.X = None
@@ -177,8 +171,7 @@ class MaxPoolingLayer:
     def forward(self, X):
         batch_size, height, width, channels = X.shape
         # TODO: Implement maxpool forward pass
-        # Hint: Similarly to Conv layer, loop on
-        # output x/y dimension
+        # NOTE: Similarly to Conv layer, loop on output x/y dimension
         raise Exception("Not implemented!")
 
 
@@ -201,8 +194,7 @@ class Flattener:
         batch_size, height, width, channels = X.shape
 
         # TODO: Implement forward pass
-        # Layer should return array with dimensions
-        # [batch_size, hight*width*channels]
+        # Layer should return array with dimensions [batch_size, hight*width*channels]
         raise Exception("Not implemented!")
 
 
