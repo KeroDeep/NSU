@@ -2,7 +2,7 @@
 
 block_cipher = None
 
-a = Analysis(
+analysis = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
@@ -27,14 +27,14 @@ a = Analysis(
     noarchive=False,
 )
 
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+pyz = PYZ(analysis.pure, analysis.zipped_data, cipher=block_cipher)
 
 exe = EXE(
     pyz,
-    a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
+    analysis.scripts,
+    analysis.binaries,
+    analysis.zipfiles,
+    analysis.datas,
     [],
     name='main',
     debug=False,
