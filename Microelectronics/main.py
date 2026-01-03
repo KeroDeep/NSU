@@ -14,12 +14,24 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 class MDPCapacitanceApplication:
     """Главный класс приложения для анализа характеристик МДП-структур (MOS-структур)"""
-
     def __init__(self, root):
         """Инициализация приложения: настройка окна, констант, базы материалов и переменных интерфейса"""
         self.root = root
         self.root.title("Анализ МДП структур")
-        self.root.geometry("1600x1000")
+
+        # Запоминаем нормальный размер
+        self.normal_size = "1600x1000"
+
+        # Получаем размеры экрана
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+
+        # Устанавливаем окно на весь экран
+        self.root.geometry(f"{screen_width}x{screen_height}+0+0")
+        self.root.state('zoomed')  # Максимизируем окно
+
+        # Добавляем обработчик события изменения состояния окна
+        self.root.bind("<Configure>", self.on_window_configure)
 
         # Попытка установить иконку приложения
         try:
@@ -133,6 +145,39 @@ class MDPCapacitanceApplication:
         self.style.configure('TLabelframe.Label', font=('Arial', int(12 * self.scale_factor)))
 
 
+    def on_window_configure(self, event=None):
+        """Обработчик изменения размера окна"""
+        # Если окно больше не максимизировано и мы в полноэкранном режиме
+        if hasattr(self, 'was_maximized') and self.was_maximized:
+            if self.root.state() != 'zoomed':
+                # Выходим из полноэкранного режима
+                self.was_maximized = False
+                # Устанавливаем нормальный размер
+                self.root.geometry(self.normal_size)
+                # Центрируем окно
+                self.center_window()
+        else:
+            # Запоминаем, если окно максимизировано
+            self.was_maximized = (self.root.state() == 'zoomed')
+
+
+    def center_window(self):
+        """Центрирование окна на экране"""
+        self.root.update_idletasks()
+        # Устанавливаем конкретный размер
+        self.root.geometry(self.normal_size)
+
+        width = 1600
+        height = 1000
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+
+        x = (screen_width - width) // 2
+        y = (screen_height - height) // 2
+
+        self.root.geometry(f"{width}x{height}+{x}+{y}")
+
+
     def get_translations(self):
         """Словарь переводов для интерфейса"""
         return {
@@ -202,7 +247,7 @@ class MDPCapacitanceApplication:
                 "error_export": "Не удалось экспортировать графики:"
             },
             "English": {
-                "title": "MOS structure analysis",
+                "title": "MDS structure analysis",
                 "control_panel": "Control panel",
                 "management": "Management",
                 "save_data": "Save data",
@@ -308,20 +353,27 @@ class MDPCapacitanceApplication:
 
     def create_buttons_column(self, parent):
         """Колонка с кнопками управления"""
-        buttons_frame = ttk.LabelFrame(parent, text=self.translations[self.current_language]["management"], padding="10")
-        buttons_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        self.buttons_frame = ttk.LabelFrame(parent, text=self.translations[self.current_language]["management"], padding="10")
+        self.buttons_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
 
-        container = ttk.Frame(buttons_frame)
+        container = ttk.Frame(self.buttons_frame)
         container.pack(expand=True, fill=tk.BOTH)
         center_frame = ttk.Frame(container)
         center_frame.pack(expand=True)
 
         button_width = int(28 * self.scale_factor)
 
-        ttk.Button(center_frame, text=self.translations[self.current_language]["save_data"], command=self.save_data, width=button_width).pack(pady=5)
-        ttk.Button(center_frame, text=self.translations[self.current_language]["export_plots"], command=self.export_plots, width=button_width).pack(pady=5)
-        ttk.Button(center_frame, text=self.translations[self.current_language]["reset_parameters"], command=self.reset_parameters, width=button_width).pack(pady=5)
-        ttk.Button(center_frame, text=self.translations[self.current_language]["change_language"], command=self.toggle_language, width=button_width).pack(pady=5)
+        self.save_button = ttk.Button(center_frame, text=self.translations[self.current_language]["save_data"], command=self.save_data, width=button_width)
+        self.save_button.pack(pady=5)
+
+        self.export_button = ttk.Button(center_frame, text=self.translations[self.current_language]["export_plots"], command=self.export_plots, width=button_width)
+        self.export_button.pack(pady=5)
+
+        self.reset_button = ttk.Button(center_frame, text=self.translations[self.current_language]["reset_parameters"], command=self.reset_parameters, width=button_width)
+        self.reset_button.pack(pady=5)
+
+        self.language_button = ttk.Button(center_frame, text=self.translations[self.current_language]["change_language"], command=self.toggle_language, width=button_width)
+        self.language_button.pack(pady=5)
 
         # Кнопки масштаба
         scale_frame = ttk.Frame(center_frame)
@@ -350,13 +402,166 @@ class MDPCapacitanceApplication:
 
     def toggle_language(self):
         """Переключение языка интерфейса"""
-        # Сохраняем текущие ключи материалов перед сменой языка
-        self.saved_semiconductor_key = self.get_semiconductor_key()
-        self.saved_dielectric_key = self.get_dielectric_key()
-        self.saved_type = self.semiconductor_type_display.get()
-
+        # Меняем язык
         self.current_language = "English" if self.current_language == "Русский" else "Русский"
-        self.refresh_interface()
+
+        # Обновляем все текстовые элементы интерфейса
+        self.update_all_interface_texts()
+
+        # Обновляем подписи и пересчитываем
+        self.update_labels()
+        self.calculate()
+
+
+    def update_all_interface_texts(self):
+        """Обновление всех текстовых элементов интерфейса при смене языка"""
+        # Обновляем заголовок окна
+        self.root.title(self.translations[self.current_language]["title"])
+
+        # Обновляем заголовки всех основных фреймов
+        self.update_frame_titles()
+
+        # Обновляем все подписи в интерфейсе
+        self.update_all_labels()
+
+        # Обновляем подписи графиков
+        self.update_plot_labels()
+
+        # Обновляем выпадающие списки материалов
+        self.update_material_comboboxes()
+
+        # Обновляем кнопки
+        self.update_buttons()
+
+
+    def update_frame_titles(self):
+        """Обновление заголовков всех фреймов"""
+        language = self.translations[self.current_language]
+
+        # Обновляем заголовок панели управления
+        self.control_frame.config(text=language["control_panel"])
+
+        # Обновляем заголовок блока управления
+        self.buttons_frame.config(text=language["management"])
+
+        # Обновляем заголовки всех внутренних фреймов
+        for widget in self.control_frame.winfo_children():
+            if isinstance(widget, ttk.LabelFrame):
+                current_text = widget.cget('text')
+                if current_text in ["Материалы", "Materials"]:
+                    widget.config(text=language["materials"])
+                elif current_text in ["Геометрические параметры", "Geometric parameters"]:
+                    widget.config(text=language["geometric_parameters"])
+                elif current_text in ["Параметры полупроводника", "Semiconductor parameters"]:
+                    widget.config(text=language["semiconductor_parameters"])
+
+        # Обновляем заголовки других фреймов
+        self.plot_frame.config(text=language["results_modeling"])
+        self.analysis_frame.config(text=language["analysis_parameters"])
+
+
+    def update_buttons(self):
+        """Обновление текста кнопок"""
+        language = self.translations[self.current_language]
+
+        if hasattr(self, 'save_button'):
+            self.save_button.config(text=language["save_data"])
+
+        if hasattr(self, 'export_button'):
+            self.export_button.config(text=language["export_plots"])
+
+        if hasattr(self, 'reset_button'):
+            self.reset_button.config(text=language["reset_parameters"])
+
+        if hasattr(self, 'language_button'):
+            self.language_button.config(text=language["change_language"])
+
+
+    def update_all_labels(self):
+        """Обновление всех текстовых подписей в интерфейсе"""
+        language = self.translations[self.current_language]
+
+        # Обновляем подписи в блоке материалов
+        if hasattr(self, 'materials_labels'):
+            for label_widget in self.materials_labels:
+                current_text = label_widget.cget('text')
+                if current_text in ["Полупроводник:", "Semiconductor:"]:
+                    label_widget.config(text=language["semiconductor"])
+                elif current_text in ["Тип полупроводника:", "Semiconductor type:"]:
+                    label_widget.config(text=language["semiconductor_type"])
+                elif current_text in ["Диэлектрик:", "Dielectric:"]:
+                    label_widget.config(text=language["dielectric"])
+                elif current_text in ["Диэлектрическая проницаемость:", "Dielectric permittivity:"]:
+                    label_widget.config(text=language["dielectric_permittivity"])
+
+        # Обновляем подписи в блоке геометрических параметров
+        if hasattr(self, 'geometry_labels'):
+            for label_widget in self.geometry_labels:
+                current_text = label_widget.cget('text')
+                if current_text in ["Толщина диэлектрика, нм:", "Dielectric thickness, nm:"]:
+                    label_widget.config(text=language["thickness"])
+                elif current_text in ["Площадь контакта, мм²:", "Contact area, mm²:"]:
+                    label_widget.config(text=language["area"])
+                elif current_text in ["Максимальное напряжение, В:", "Maximum voltage, V:"]:
+                    label_widget.config(text=language["max_voltage"])
+                elif current_text in ["Шаг напряжения, В:", "Voltage step, V:"]:
+                    label_widget.config(text=language["voltage_step"])
+
+        # Обновляем подписи в блоке параметров полупроводника
+        if hasattr(self, 'semiconductor_labels'):
+            for label_widget in self.semiconductor_labels:
+                current_text = label_widget.cget('text')
+                if current_text in ["Запрещенная зона, эВ:", "Bandgap, eV:"]:
+                    label_widget.config(text=language["bandgap"])
+                elif current_text in ["Диэлектрическая проницаемость:", "Permittivity:"]:
+                    label_widget.config(text=language["permittivity"])
+                elif current_text in ["Эффективная масса дырок:", "Hole effective mass:"]:
+                    label_widget.config(text=language["effective_mass_holes"])
+                elif current_text in ["Эффективная масса электронов:", "Electron effective mass:"]:
+                    label_widget.config(text=language["effective_mass_electrons"])
+                elif current_text in ["Степень 10^:", "Exponent 10^:"]:
+                    label_widget.config(text=language["doping_exponent"])
+                elif current_text in ["Температура, К:", "Temperature, K:"]:
+                    label_widget.config(text=language["temperature"])
+                # Динамические подписи обрабатываются в update_labels()
+
+
+    def update_material_comboboxes(self):
+        """Обновление выпадающих списков материалов при смене языка"""
+        try:
+            # Обновляем значения в выпадающем списке полупроводников
+            semiconductor_values = [data["display"][self.current_language] for data in self.semiconductor_data.values()]
+            self.semiconductor_combobox['values'] = semiconductor_values
+
+            # Обновляем текущее значение
+            current_key = self.get_semiconductor_key()
+            if current_key in self.semiconductor_data:
+                self.semiconductor_display.set(self.semiconductor_data[current_key]["display"][self.current_language])
+
+            # Обновляем значения в выпадающем списке типов
+            type_values = ["n-type", "p-type"] if self.current_language == "English" else ["n-типа", "p-типа"]
+            self.semiconductor_type_combobox['values'] = type_values
+
+            # Обновляем текущее значение типа
+            current_type = self.semiconductor_type_display.get()
+            if current_type in ["n-типа", "n-type"]:
+                self.semiconductor_type_display.set(type_values[0])
+            elif current_type in ["p-типа", "p-type"]:
+                self.semiconductor_type_display.set(type_values[1])
+
+            # Обновляем значения в выпадающем списке диэлектриков
+            dielectric_values = [data["display"][self.current_language] for data in self.dielectric_data.values()] + [self.translations[self.current_language]["custom"]]
+            self.dielectric_combobox['values'] = dielectric_values
+
+            # Обновляем текущее значение диэлектрика
+            current_key = self.get_dielectric_key()
+            if current_key is None:
+                self.dielectric_display.set(self.translations[self.current_language]["custom"])
+            elif current_key in self.dielectric_data:
+                self.dielectric_display.set(self.dielectric_data[current_key]["display"][self.current_language])
+
+        except Exception as exception:
+            print(f"Ошибка при обновлении списков материалов: {exception}")
 
 
     def update_font_sizes(self):
@@ -371,85 +576,16 @@ class MDPCapacitanceApplication:
         self.style.configure('TCombobox', font=('Arial', base_font_size))
         self.style.configure('TSpinbox', font=('Arial', base_font_size))
 
-        self.refresh_interface()
+        # Обновляем метку масштаба
+        if hasattr(self, 'scale_label'):
+            self.scale_label.config(text=f"{self.scale_levels[self.current_scale_index]}%", font=('Arial', large_font_size))
 
+        # Обновляем шрифт в текстовом поле анализа
+        if hasattr(self, 'analysis_text'):
+            self.analysis_text.config(font=('Consolas', base_font_size))
 
-    def refresh_interface(self):
-        """Полное пересоздание интерфейса при смене языка или масштаба"""
-        # Сохраняем текущие числовые параметры
-        saved_params = {
-            'bandgap': self.bandgap_variable.get(),
-            'permittivity': self.permittivity_variable.get(),
-            'effective_mass_holes': self.effective_mass_holes_variable.get(),
-            'effective_mass_electrons': self.effective_mass_electrons_variable.get(),
-            'ionization_level': self.ionization_level_variable.get(),
-            'doping_mantissa': self.doping_mantissa_variable.get(),
-            'doping_exponent': self.doping_exponent_variable.get(),
-            'temperature': self.temperature_variable.get(),
-            'thickness': self.thickness_variable.get(),
-            'area': self.area_variable.get(),
-            'dielectric_permittivity': self.dielectric_permittivity_variable.get(),
-            'maximum_voltage': self.maximum_voltage_variable.get(),
-            'voltage_step': self.voltage_step_variable.get(),
-        }
-
-        # Уничтожаем старый интерфейс
-        for widget in self.root.winfo_children():
-            widget.destroy()
-
-        if hasattr(self, 'figure'):
-            plt.close(self.figure)
-
-        # Пересоздаём интерфейс
-        self.create_widgets()
-
-        # Восстанавливаем выбор материалов
-        try:
-            self.semiconductor_display.set(self.semiconductor_data[self.saved_semiconductor_key]["display"][self.current_language])
-        except:
-            self.semiconductor_display.set(self.semiconductor_data["Si"]["display"][self.current_language])
-
-        if self.saved_dielectric_key is None:
-            self.dielectric_display.set(self.translations[self.current_language]["custom"])
-        else:
-            try:
-                self.dielectric_display.set(self.dielectric_data[self.saved_dielectric_key]["display"][self.current_language])
-            except:
-                self.dielectric_display.set(self.dielectric_data["SiO2"]["display"][self.current_language])
-
-        # Восстанавливаем тип полупроводника
-        type_values = ["n-type", "p-type"] if self.current_language == "English" else ["n-типа", "p-типа"]
-
-        if self.saved_type in type_values:
-            self.semiconductor_type_display.set(self.saved_type)
-        else:
-            self.semiconductor_type_display.set(type_values[0])
-
-        # Восстанавливаем числовые параметры
-        self.bandgap_variable.set(saved_params['bandgap'])
-        self.permittivity_variable.set(saved_params['permittivity'])
-        self.effective_mass_holes_variable.set(saved_params['effective_mass_holes'])
-        self.effective_mass_electrons_variable.set(saved_params['effective_mass_electrons'])
-        self.ionization_level_variable.set(saved_params['ionization_level'])
-        self.doping_mantissa_variable.set(saved_params['doping_mantissa'])
-        self.doping_exponent_variable.set(saved_params['doping_exponent'])
-        self.temperature_variable.set(saved_params['temperature'])
-        self.thickness_variable.set(saved_params['thickness'])
-        self.area_variable.set(saved_params['area'])
-        self.dielectric_permittivity_variable.set(saved_params['dielectric_permittivity'])
-        self.maximum_voltage_variable.set(saved_params['maximum_voltage'])
-        self.voltage_step_variable.set(saved_params['voltage_step'])
-
-        # Восстанавливаем состояние поля ввода диэлектрической проницаемости
-        if self.dielectric_display.get() == self.translations[self.current_language]["custom"]:
-            self.dielectric_permittivity_spinbox.config(state="normal")
-        else:
-            self.dielectric_permittivity_spinbox.config(state="disabled")
-
-        self.update_labels()
-
-        # Пересчитываем графики
-        self.calculate()
+        # Обновляем подписи графиков
+        self.update_plot_labels()
 
 
     def get_semiconductor_key(self):
@@ -489,10 +625,10 @@ class MDPCapacitanceApplication:
 
     def create_materials_column(self, parent):
         """Колонка выбора материалов (полупроводник и диэлектрик)"""
-        materials_frame = ttk.LabelFrame(parent, text=self.translations[self.current_language]["materials"], padding="10")
-        materials_frame.grid(row=0, column=1, sticky="nsew", padx=(0, 5))
+        self.materials_frame = ttk.LabelFrame(parent, text=self.translations[self.current_language]["materials"], padding="10")
+        self.materials_frame.grid(row=0, column=1, sticky="nsew", padx=(0, 5))
 
-        container = ttk.Frame(materials_frame)
+        container = ttk.Frame(self.materials_frame)
         container.pack(expand=True, fill=tk.BOTH)
         center_frame = ttk.Frame(container)
         center_frame.pack(expand=True)
@@ -500,10 +636,16 @@ class MDPCapacitanceApplication:
         width_maximum = 25
         label_width = 32
 
+        # Список для хранения меток материалов
+        self.materials_labels = []
+
         # Выбор полупроводника
         semiconductor_frame = ttk.Frame(center_frame)
         semiconductor_frame.pack(pady=5, fill=tk.X)
-        ttk.Label(semiconductor_frame, text=self.translations[self.current_language]["semiconductor"], width=label_width, anchor=tk.W).pack(side=tk.LEFT, padx=(0, 5))
+        semiconductor_label = ttk.Label(semiconductor_frame, text=self.translations[self.current_language]["semiconductor"], width=label_width, anchor=tk.W)
+        semiconductor_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.materials_labels.append(semiconductor_label)
+
         semiconductor_values = [data["display"][self.current_language] for data in self.semiconductor_data.values()]
         self.semiconductor_combobox = ttk.Combobox(semiconductor_frame, textvariable=self.semiconductor_display, values=semiconductor_values, state="readonly", width=width_maximum)
         self.semiconductor_combobox.pack(side=tk.RIGHT)
@@ -512,7 +654,10 @@ class MDPCapacitanceApplication:
         # Выбор типа полупроводника
         type_frame = ttk.Frame(center_frame)
         type_frame.pack(pady=5, fill=tk.X)
-        ttk.Label(type_frame, text=self.translations[self.current_language]["semiconductor_type"], width=label_width, anchor=tk.W).pack(side=tk.LEFT, padx=(0, 5))
+        type_label = ttk.Label(type_frame, text=self.translations[self.current_language]["semiconductor_type"], width=label_width, anchor=tk.W)
+        type_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.materials_labels.append(type_label)
+
         type_values = ["n-type", "p-type"] if self.current_language == "English" else ["n-типа", "p-типа"]
         self.semiconductor_type_combobox = ttk.Combobox(type_frame, textvariable=self.semiconductor_type_display, values=type_values, state="readonly", width=width_maximum)
         self.semiconductor_type_combobox.pack(side=tk.RIGHT)
@@ -521,7 +666,10 @@ class MDPCapacitanceApplication:
         # Выбор диэлектрика
         dielectric_frame = ttk.Frame(center_frame)
         dielectric_frame.pack(pady=5, fill=tk.X)
-        ttk.Label(dielectric_frame, text=self.translations[self.current_language]["dielectric"], width=label_width, anchor=tk.W).pack(side=tk.LEFT, padx=(0, 5))
+        dielectric_label = ttk.Label(dielectric_frame, text=self.translations[self.current_language]["dielectric"], width=label_width, anchor=tk.W)
+        dielectric_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.materials_labels.append(dielectric_label)
+
         dielectric_values = [data["display"][self.current_language] for data in self.dielectric_data.values()] + [self.translations[self.current_language]["custom"]]
         self.dielectric_combobox = ttk.Combobox(dielectric_frame, textvariable=self.dielectric_display, values=dielectric_values, state="readonly", width=width_maximum)
         self.dielectric_combobox.pack(side=tk.RIGHT)
@@ -530,7 +678,10 @@ class MDPCapacitanceApplication:
         # Пользовательская диэлектрическая проницаемость
         custom_dielectric_frame = ttk.Frame(center_frame)
         custom_dielectric_frame.pack(pady=5, fill=tk.X)
-        ttk.Label(custom_dielectric_frame, text=self.translations[self.current_language]["dielectric_permittivity"], width=label_width, anchor=tk.W).pack(side=tk.LEFT, padx=(0, 5))
+        permittivity_label = ttk.Label(custom_dielectric_frame, text=self.translations[self.current_language]["dielectric_permittivity"], width=label_width, anchor=tk.W)
+        permittivity_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.materials_labels.append(permittivity_label)
+
         self.dielectric_permittivity_spinbox = ttk.Spinbox(custom_dielectric_frame, textvariable=self.dielectric_permittivity_variable, from_=1.0, to=100.0, increment=0.1, width=width_maximum, state="disabled")
         self.dielectric_permittivity_spinbox.pack(side=tk.RIGHT)
         self.dielectric_permittivity_spinbox.bind('<KeyRelease>', lambda event: self.calculate())
@@ -538,44 +689,51 @@ class MDPCapacitanceApplication:
 
     def create_geometry_column(self, parent):
         """Колонка геометрических параметров структуры"""
-        geometry_frame = ttk.LabelFrame(parent, text=self.translations[self.current_language]["geometric_parameters"], padding="10")
-        geometry_frame.grid(row=0, column=2, sticky="nsew", padx=(0, 5))
+        self.geometry_frame = ttk.LabelFrame(parent, text=self.translations[self.current_language]["geometric_parameters"], padding="10")
+        self.geometry_frame.grid(row=0, column=2, sticky="nsew", padx=(0, 5))
 
-        container = ttk.Frame(geometry_frame)
+        container = ttk.Frame(self.geometry_frame)
         container.pack(expand=True, fill=tk.BOTH)
         center_frame = ttk.Frame(container)
         center_frame.pack(expand=True)
 
         label_width = 30
 
-        self.create_parameter_input(center_frame, self.translations[self.current_language]["thickness"], self.thickness_variable, 0.1, 1000.0, 1.0, label_width)
-        self.create_parameter_input(center_frame, self.translations[self.current_language]["area"], self.area_variable, 0.001, 1000.0, 0.1, label_width)
-        self.create_parameter_input(center_frame, self.translations[self.current_language]["max_voltage"], self.maximum_voltage_variable, 0.01, 100.0, 0.5, label_width)
-        self.create_parameter_input(center_frame, self.translations[self.current_language]["voltage_step"], self.voltage_step_variable, 0.0001, 1.0, 0.001, label_width)
+        # Список для хранения меток геометрических параметров
+        self.geometry_labels = []
+
+        self.create_parameter_input(center_frame, self.translations[self.current_language]["thickness"], self.thickness_variable, 0.1, 1000.0, 1.0, label_width, self.geometry_labels)
+        self.create_parameter_input(center_frame, self.translations[self.current_language]["area"], self.area_variable, 0.001, 1000.0, 0.1, label_width, self.geometry_labels)
+        self.create_parameter_input(center_frame, self.translations[self.current_language]["max_voltage"], self.maximum_voltage_variable, 0.01, 100.0, 0.5, label_width, self.geometry_labels)
+        self.create_parameter_input(center_frame, self.translations[self.current_language]["voltage_step"], self.voltage_step_variable, 0.0001, 1.0, 0.001, label_width, self.geometry_labels)
 
 
     def create_semiconductor_column(self, parent):
         """Колонка параметров полупроводника"""
-        semiconductor_frame = ttk.LabelFrame(parent, text=self.translations[self.current_language]["semiconductor_parameters"], padding="10")
-        semiconductor_frame.grid(row=0, column=3, sticky="nsew")
+        self.semiconductor_params_frame = ttk.LabelFrame(parent, text=self.translations[self.current_language]["semiconductor_parameters"], padding="10")
+        self.semiconductor_params_frame.grid(row=0, column=3, sticky="nsew")
 
-        container = ttk.Frame(semiconductor_frame)
+        container = ttk.Frame(self.semiconductor_params_frame)
         container.pack(expand=True, fill=tk.BOTH)
         center_frame = ttk.Frame(container)
         center_frame.pack(expand=True)
 
         label_width = 35
 
-        self.create_parameter_input(center_frame, self.translations[self.current_language]["bandgap"], self.bandgap_variable, 0.01, 10.0, 0.1, label_width)
-        self.create_parameter_input(center_frame, self.translations[self.current_language]["permittivity"], self.permittivity_variable, 1.0, 100.0, 1.0, label_width)
-        self.create_parameter_input(center_frame, self.translations[self.current_language]["effective_mass_holes"], self.effective_mass_holes_variable, 0.01, 10.0, 0.1, label_width)
-        self.create_parameter_input(center_frame, self.translations[self.current_language]["effective_mass_electrons"], self.effective_mass_electrons_variable, 0.01, 10.0, 0.1, label_width)
+        # Список для хранения меток параметров полупроводника
+        self.semiconductor_labels = []
+
+        self.create_parameter_input(center_frame, self.translations[self.current_language]["bandgap"], self.bandgap_variable, 0.01, 10.0, 0.1, label_width, self.semiconductor_labels)
+        self.create_parameter_input(center_frame, self.translations[self.current_language]["permittivity"], self.permittivity_variable, 1.0, 100.0, 1.0, label_width, self.semiconductor_labels)
+        self.create_parameter_input(center_frame, self.translations[self.current_language]["effective_mass_holes"], self.effective_mass_holes_variable, 0.01, 10.0, 0.1, label_width, self.semiconductor_labels)
+        self.create_parameter_input(center_frame, self.translations[self.current_language]["effective_mass_electrons"], self.effective_mass_electrons_variable, 0.01, 10.0, 0.1, label_width, self.semiconductor_labels)
 
         # Уровень ионизации с динамической подписью
         ionization_level_frame = ttk.Frame(center_frame)
         ionization_level_frame.pack(fill=tk.X, pady=3)
         self.ionization_level_label = ttk.Label(ionization_level_frame, width=label_width, anchor=tk.W)
         self.ionization_level_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.semiconductor_labels.append(self.ionization_level_label)
         self.create_parameter_spinbox(ionization_level_frame, self.ionization_level_variable, 0.0001, 1.0, 0.01)
 
         # Мантисса концентрации легирования с динамической подписью
@@ -583,22 +741,30 @@ class MDPCapacitanceApplication:
         doping_mantissa_frame.pack(fill=tk.X, pady=3)
         self.doping_mantissa_label = ttk.Label(doping_mantissa_frame, width=label_width, anchor=tk.W)
         self.doping_mantissa_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.semiconductor_labels.append(self.doping_mantissa_label)
         self.create_parameter_spinbox(doping_mantissa_frame, self.doping_mantissa_variable, 0.1, 9.99, 0.1)
 
         # Степень концентрации легирования
         doping_exponent_frame = ttk.Frame(center_frame)
         doping_exponent_frame.pack(fill=tk.X, pady=3)
-        ttk.Label(doping_exponent_frame, text=self.translations[self.current_language]["doping_exponent"], width=label_width, anchor=tk.W).pack(side=tk.LEFT, padx=(0, 5))
+        exponent_label = ttk.Label(doping_exponent_frame, text=self.translations[self.current_language]["doping_exponent"], width=label_width, anchor=tk.W)
+        exponent_label.pack(side=tk.LEFT, padx=(0, 5))
+        self.semiconductor_labels.append(exponent_label)
         self.create_parameter_spinbox(doping_exponent_frame, self.doping_exponent_variable, 10, 25, 1)
 
-        self.create_parameter_input(center_frame, self.translations[self.current_language]["temperature"], self.temperature_variable, 1.0, 1500.0, 10.0, label_width)
+        self.create_parameter_input(center_frame, self.translations[self.current_language]["temperature"], self.temperature_variable, 1.0, 1500.0, 10.0, label_width, self.semiconductor_labels)
 
 
-    def create_parameter_input(self, parent, label, variable, minimum_value, maximum_value, increment, label_width):
+    def create_parameter_input(self, parent, label, variable, minimum_value, maximum_value, increment, label_width, labels_list=None):
         """Создание элемента ввода с подписью слева и валидацией"""
         frame = ttk.Frame(parent)
         frame.pack(fill=tk.X, pady=3)
-        ttk.Label(frame, text=label, width=label_width, anchor=tk.W).pack(side=tk.LEFT, padx=(0, 5))
+        label_widget = ttk.Label(frame, text=label, width=label_width, anchor=tk.W)
+        label_widget.pack(side=tk.LEFT, padx=(0, 5))
+
+        if labels_list is not None:
+            labels_list.append(label_widget)
+
         self.create_parameter_spinbox(frame, variable, minimum_value, maximum_value, increment)
 
 
@@ -662,6 +828,33 @@ class MDPCapacitanceApplication:
         self.axes4.set_xlabel(language["voltage"])
         self.axes4.set_ylabel(language["field_mv_cm"])
         self.axes4.grid(True, alpha=0.3)
+        
+    def update_plot_labels(self):
+        """Обновление подписей графиков"""
+        language = self.translations[self.current_language]
+
+        if hasattr(self, 'axes1'):
+            self.axes1.set_title(language["volt_farad"])
+            self.axes1.set_xlabel(language["voltage"])
+            self.axes1.set_ylabel(language["capacitance"])
+
+        if hasattr(self, 'axes2'):
+            self.axes2.set_title(language["depletion_width"])
+            self.axes2.set_xlabel(language["voltage"])
+            self.axes2.set_ylabel(language["width_nm"])
+
+        if hasattr(self, 'axes3'):
+            self.axes3.set_title(language["surface_potential"])
+            self.axes3.set_xlabel(language["voltage"])
+            self.axes3.set_ylabel(language["potential_v"])
+
+        if hasattr(self, 'axes4'):
+            self.axes4.set_title(language["electric_field"])
+            self.axes4.set_xlabel(language["voltage"])
+            self.axes4.set_ylabel(language["field_mv_cm"])
+
+        if hasattr(self, 'canvas'):
+            self.canvas.draw_idle()
 
 
     def create_analysis_panel(self, parent):
@@ -749,8 +942,12 @@ class MDPCapacitanceApplication:
     def update_labels(self):
         """Обновление динамических подписей в зависимости от типа полупроводника"""
         semiconductor_type = self.get_semiconductor_type()
-        self.ionization_level_label['text'] = self.translations[self.current_language][f"ionization_level_{semiconductor_type}"]
-        self.doping_mantissa_label['text'] = self.translations[self.current_language][f"doping_mantissa_{semiconductor_type}"]
+
+        if hasattr(self, 'ionization_level_label'):
+            self.ionization_level_label['text'] = self.translations[self.current_language][f"ionization_level_{semiconductor_type}"]
+
+        if hasattr(self, 'doping_mantissa_label'):
+            self.doping_mantissa_label['text'] = self.translations[self.current_language][f"doping_mantissa_{semiconductor_type}"]
 
 
     def calculate_capacitance(self):
@@ -776,17 +973,17 @@ class MDPCapacitanceApplication:
             dielectric_capacitance = epsilon_dielectric * area / thickness
 
             # Расчёт собственной концентрации
-            phi_t = self.boltzmann_constant * temperature / self.electron_charge
-            m_e = self.effective_mass_electrons_variable.get()
-            m_h = self.effective_mass_holes_variable.get()
-            h_bar = self.planck_constant / (2 * np.pi)
-            prefactor = (2 * np.pi * self.electron_mass * self.boltzmann_constant * temperature / (h_bar ** 2)) ** (1.5)
-            N_c = 2 * (m_e) ** (1.5) * prefactor
-            N_v = 2 * (m_h) ** (1.5) * prefactor
-            n_i_m3 = np.sqrt(N_c * N_v) * np.exp(-bandgap / (2 * phi_t))
-            n_i = n_i_m3 / 1e6
-            phi_b = phi_t * np.log(doping_concentration / n_i)
-            threshold_potential = 2 * phi_b
+            thermal_potential = self.boltzmann_constant * temperature / self.electron_charge
+            effective_mass_electrons = self.effective_mass_electrons_variable.get()
+            effective_mass_holes = self.effective_mass_holes_variable.get()
+            reduced_planck_constant = self.planck_constant / (2 * np.pi)
+            density_of_states_prefactor = (2 * np.pi * self.electron_mass * self.boltzmann_constant * temperature / (reduced_planck_constant ** 2)) ** (1.5)
+            effective_density_of_states_conduction_band = 2 * (effective_mass_electrons) ** (1.5) * density_of_states_prefactor
+            effective_density_of_states_valence_band = 2 * (effective_mass_holes) ** (1.5) * density_of_states_prefactor
+            intrinsic_carrier_concentration_m3 = np.sqrt(effective_density_of_states_conduction_band * effective_density_of_states_valence_band) * np.exp(-bandgap / (2 * thermal_potential))
+            intrinsic_carrier_concentration = intrinsic_carrier_concentration_m3 / 1e6
+            built_in_potential = thermal_potential * np.log(doping_concentration / intrinsic_carrier_concentration)
+            threshold_potential = 2 * built_in_potential
 
             # Диапазон напряжений
             polarity = -1 if semiconductor_type == 'n' else 1
@@ -830,7 +1027,8 @@ class MDPCapacitanceApplication:
                     electric_fields.append(electric_field)
 
             return (np.array(voltages), np.array(capacitances), np.array(surface_potentials), np.array(depletion_widths), np.array(electric_fields), semiconductor_type, doping_concentration)
-        except Exception:
+        except Exception as exception:
+            print(f"Ошибка при расчёте: {exception}")
             return None, None, None, None, None, None, None
 
 
@@ -841,8 +1039,8 @@ class MDPCapacitanceApplication:
             if results[0] is not None:
                 self.update_plot(*results[:5], results[5])
                 self.update_analysis(*results)
-        except Exception:
-            pass
+        except Exception as exception:
+            print(f"Ошибка при обновлении графиков: {exception}")
 
 
     def update_plot(self, voltages, capacitances, surface_potentials, depletion_widths, electric_fields, semiconductor_type):

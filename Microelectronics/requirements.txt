@@ -1,8 +1,3 @@
-# NOTE: tkinter
-
 numpy>=1.21.0
 matplotlib>=3.5.0
-Pillow>=9.0.0
-pyinstaller>=5.0.0
-scipy>=1.7.0
-pandas>=1.3.0
+pillow>=9.0.0
